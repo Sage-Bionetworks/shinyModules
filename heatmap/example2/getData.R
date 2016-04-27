@@ -11,6 +11,7 @@ metaData_obj <- synGet("syn5987186")
 metaData <- read.csv(metaData_obj@filePath,sep = "\t",stringsAsFactors = FALSE)
 row.names(metaData) <- metaData$SampleID
 
+
 ## Only keep samples in both
 in_common <- intersect(rownames(metaData), colnames(expr))
 metaData <- metaData[in_common, ]
@@ -22,6 +23,11 @@ rownames(features) <- rownames(expr)
 # Scale rows and columns
 expr <- scale(expr)
 expr <- t(scale(t(expr)))
+
+head(expr)
+dim(expr)
+dim(metaData)
+dim(features)
 
 eset.data <- ExpressionSet(assayData=as.matrix(expr),
                            phenoData=AnnotatedDataFrame(metaData),

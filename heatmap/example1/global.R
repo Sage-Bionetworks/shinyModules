@@ -4,13 +4,13 @@ options(warn=-1)
 library("devtools")
 library("synapseClient")
 library("shiny")
-library(shinydashboard)
+library("shinydashboard")
 library("dplyr")
 library("tidyr")
 library("memoise")
 library("futile.logger")
-library(Biobase)
-library(data.table)
+library("Biobase")
+library("data.table")
 
 # Set up logging
 flog.threshold(DEBUG, name='server')
@@ -23,14 +23,13 @@ synapseLogin()
 
 flog.debug("Starting App", name="server")
 
-#source the heatmap code
-source("expression_heatmap.R")
+source("../../lib/sbHeatmap.R")
 
 #get the global functions
-source("global_functions.R")
+source("../global_functions.R")
 
 #get module
-source("heatmapModule.R")
+source("../heatmapModule.R")
 
 #get data
 source("getData.R")
