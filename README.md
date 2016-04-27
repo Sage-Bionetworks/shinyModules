@@ -1,2 +1,2 @@
-# shinyModules
-independent shiny modules for plug n play between applications
+### Custom Shiny Modules
+_By Xindi Guo & Abhishek Pratap @ Sage Bionetworks_

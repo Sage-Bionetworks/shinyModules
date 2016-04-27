@@ -1,7 +1,7 @@
 heatmapModuleUI <- function(id){
   ns <- NS(id)
   tagList(
-  myHeader <- dashboardHeader(title="Heatmap Demo", disable=TRUE),
+  myHeader <- dashboardHeader(title="", disable=TRUE),
   mySidebar <- dashboardSidebar(disable=TRUE),
   
   myBody <-dashboardBody(
@@ -13,13 +13,10 @@ heatmapModuleUI <- function(id){
                  collapsed=FALSE, solidHeader=TRUE,
                  title = tagList(shiny::icon("th-list", lib="glyphicon"),
                                  "Label samples"),               
-                 selectInput(ns('heatmap_annotation_labels'),
-                             'Annotate Samples by:',
-                             # -1 to remove the first value "SampleID"
-                             choices=colnames(metaData)[-1])
+                 selectInput(ns('heatmap_annotation_labels'),'Annotate Samples by:',
+                             choices=colnames(metaData), selectize=T, multiple=T, selected=colnames(metaData)[1])
              ),
-             
-             # Clustering box
+             #Clustering box
              box(width = NULL, status = "warning", solidHeader=TRUE, 
                  collapsible=TRUE, collapsed=FALSE,
                  title = tagList(shiny::icon("wrench", lib="glyphicon"), "Change cluster options"),
@@ -28,32 +25,25 @@ heatmapModuleUI <- function(id){
                              choices=c("correlation", "euclidean", "maximum", 
                                        "manhattan", "canberra", "binary", "minkowski"),
                              selectize=T, multiple=F, selected="euclidean"),
-                 
                  # set the clustering method
                  selectInput(ns("clustering_method"), "Clustering Method",
                              choices=c("ward", "single", "complete", "average", 
                                        "mcquitty", "median", "centroid"),
                              selectize=T, multiple=F, selected="average"),
-                 
                  checkboxInput(ns('cluster_cols'), 'Cluster the columns', value = TRUE),
-                 
                  checkboxInput(ns('cluster_rows'), 'Cluster the rows', value = TRUE)
-                 
              )
       ),
       column(width = 9,
              box(width = NULL, solidHeader = TRUE,
-                 plotOutput(ns("heatmap"), height = 650)
-             )
-      )    
+                 plotOutput(ns("heatmap"), height = 650))
+            )    
     )
   )
   )
   dashboardPage(header=myHeader, sidebar=mySidebar, body=myBody,
                 skin = "blue")
 }
-
-
 
 heatmapModule <- function(input,output,session,data){
   filtered_dataset <- reactive({
@@ -91,7 +81,7 @@ heatmapModule <- function(input,output,session,data){
     heatmap.color <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100)
     
     
-    heatmap_cache$heatmap <- expHeatMap(m,annotation,
+    heatmap_cache$heatmap <- sbHeatMap(m,annotation,
                                         clustering_distance_rows = input$clustering_distance,
                                         clustering_distance_cols = input$clustering_distance,
                                         fontsize_col=fontsize_col, 
