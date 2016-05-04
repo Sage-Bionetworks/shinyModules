@@ -4,6 +4,16 @@ require("memoise")
 library("WGCNA")
 library("flashClust")
 
+get_heatmapAnnotation <- function(heatmap_annotation_labels, metadata){
+  if(length(heatmap_annotation_labels) == 0){
+    stop('please select atleast one heatmap annotation variable \n\n')      
+  }
+  else{
+    annotation <- metadata[, heatmap_annotation_labels, drop=F]
+    annotation
+  }
+}
+
 lo = function(rown, coln, nrow, ncol, cellheight = NA, cellwidth = NA, 
               treeheight_col, treeheight_row, legend, annotation, annotation_colors, annotation_legend, 
               main, fontsize, fontsize_row, fontsize_col, ...){
