@@ -1,0 +1,17 @@
+{
+    "contents" : "library(\"nplr\")\n\nget_drugResponse_stats <- function(conc,viability,...){\n  res <- nplr(conc, viability,...)\n  results <- getAUC(res)\n  results['goodNess_of_fit'] <- getGoodness(res)\n  results['stdErr'] <- getStdErr(res)\n  ICx_est = getEstimates(res, targets= c(.10,.20,.30,.40,.50,.60,.70,.80,.90))\n  results['IC10'] = ICx_est[1,'x']\n  results['IC20'] = ICx_est[2,'x']\n  results['IC30'] = ICx_est[3,'x']\n  results['IC40'] = ICx_est[4,'x']\n  results['IC50'] = ICx_est[5,'x']\n  results['IC60'] = ICx_est[6,'x']\n  results['IC70'] = ICx_est[7,'x']\n  results['IC80'] = ICx_est[8,'x']\n  results['IC90'] = ICx_est[9,'x']\n  results['maxEfficacy'] = max(getYcurve(res)) #get the maximum efficacy of the drug\n  results['bottom_asymptote'] = res@pars['bottom']\n  results['top_asymptote'] = res@pars['top']\n  results['hillSlope'] =  res@pars['scal']\n  \n  fittedVals <- data.frame(fittedX = getXcurve(res),\n                           fittedY = getYcurve(res))\n  results <- cbind(results,fittedVals)\n  results\n}\n\n\ntmp_iterator <- function(df){\n  tryCatch({\n    stats <- get_drugResponse_stats(df$conc, df$normViability, useLog=T)  \n  },error=function(e){\n    print(dim(df))\n    print(df$conc)\n    print(df$normViability)\n    print(unique(df$cellLine))\n    print(unique(df$drug))\n    print(unique(df$experiment))\n    stop('stopped')\n  })\n}\n",
+    "created" : 1462376564024.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2684374295",
+    "id" : "4874C027",
+    "lastKnownWriteTime" : 1462376176,
+    "path" : "~/Documents/shinyModule/drugScreen/global_DrugScreens.R",
+    "project_path" : "global_DrugScreens.R",
+    "properties" : {
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "type" : "r_source"
+}

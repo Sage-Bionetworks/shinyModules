@@ -1,0 +1,17 @@
+{
+    "contents" : "#download the DMSO norm data\ndrug_normViab.synId <- 'syn2773792'\ndrug_normViab.file <- synGet(drug_normViab.synId)\ndrug_normViab <- read.delim(drug_normViab.file@filePath, check.names=F, sep=\"\\t\", header=T)\ndrug_normViab$cellLine <- gsub(\"^ \", \"\", drug_normViab$cellLine)\n\n#drop unnecassary cols\ndrop_cols <- c('plate', 'medianDMSO', 'viability')\ndrug_normViab <- drug_normViab[, !colnames(drug_normViab) %in% drop_cols]\n\n#download the precomputed IC Vals\ndrug_ICVals.synId <- 'syn2773794'\ndrug_ICVals.file <- synGet(drug_ICVals.synId)\ndrug_ICVals <- read.delim(drug_ICVals.file@filePath, check.names=F, sep=\"\\t\", header=T)\ndrug_ICVals <- filter(drug_ICVals, goodNess_of_fit > .70 & hillSlope < 0 )\n",
+    "created" : 1462376553145.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3765776939",
+    "id" : "C282E143",
+    "lastKnownWriteTime" : 1462377455,
+    "path" : "~/Documents/shinyModule/drugScreen/getData.R",
+    "project_path" : "getData.R",
+    "properties" : {
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "type" : "r_source"
+}

@@ -1,0 +1,17 @@
+{
+    "contents" : "source(\"global.R\")\n\nui <- fluidPage(\n  drugScreenModuleUI(\"demo\") \n)\n\nserver <- function(input,output){\n  callModule(drugScreenModule,\"demo\",data1 = drug_normViab, data2 = drug_ICVals)\n}\n\nshinyApp(ui,server)",
+    "created" : 1462376270021.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2540966995",
+    "id" : "53F48DD7",
+    "lastKnownWriteTime" : 1462377639,
+    "path" : "~/Documents/shinyModule/drugScreen/app.R",
+    "project_path" : "app.R",
+    "properties" : {
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "type" : "r_source"
+}
