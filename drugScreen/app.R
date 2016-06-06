@@ -5,7 +5,8 @@ ui <- fluidPage(
 )
 
 server <- function(input,output){
-  callModule(drugScreenModule,"demo",data1 = drug_normViab, data2 = drug_ICVals)
+  #test <- callModule(testModule,"demo")
+  callModule(drugScreenModule,"demo",drugScreenData)#,test)
 }
 
 shinyApp(ui,server)
