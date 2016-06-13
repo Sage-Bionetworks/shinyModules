@@ -9,22 +9,42 @@
 
     | column name | description | optional/required? |
     |---|---|---|
-    | sample |   |   |
-    | replicate |   |   |
-    | conc |   |   |
-    | drug |   |   |
-    | normViability |    |   |
+    | sample | name of the cell line | **required** |
+    | replicate | blah | optional |
+    | conc | concentrantion of the drug | **required**|
+    | drug |  name of the drug | **required** |
+    | normViability |  normalized viability | **required** |
 
   * Processed Data
 
-2. Units
+    | column name | description | optional/required? |
+    |---|---|---|
+    | sample | name of the cell line | **required** |
+    | AC50 | blah | optional |
+    | IC50 | blah | optional |
+    | maxResp | blah | **required** |
+    | curveClass | blah | optional |
+    | drugID | blah | optional |
+    | drug | name of the drug| **required** |
+    | target | target class of the drug | optional |
+    | AUC | blah | **required** |
+
+2. Unit/Scale
 
   * Raw Data
+    
+      **conc**: molar(M)
 
-  *  Processed Data
+  * Processed Data
 
-### Output: A data-exploring shiny app
-	
+      **AC50** and **IC50** : micromolar (uM) 
+
+      **maxResp** : scale of 1 - 100
+
+
+
+
+### Output: A data-exploring shiny app	
 
 #### Example 1 - Using proccessed data
 ![alt text](../img/ds_example1_1.png "Example 1")
