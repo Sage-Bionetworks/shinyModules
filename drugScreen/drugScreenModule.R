@@ -1,4 +1,4 @@
-drugScreenModuleUI <- function(id){
+drugScreenModuleUI <- function(id, data){
   ns <- NS(id)
   tagList(
     myHeader <- dashboardHeader(title="Drug Screen", disable=TRUE),
@@ -19,14 +19,14 @@ drugScreenModuleUI <- function(id){
                             "Data Selection"),
             column(width = 5,
                    h4('1. Select Samples'), 
-                   selectInput(ns('samples'),NULL, choices = unique(summarizedData$sample),
-                               selectize=T, multiple=T,selected = unique(summarizedData$sample)[1:3])
+                   selectInput(ns('samples'),NULL, choices = unique(data$sample),
+                               selectize=T, multiple=T,selected = unique(data$sample)[1:3])
             ),
             column(width = 7,
                    h4('2. Select Drugs'),
                    uiOutput(ns("text")),
-                   selectInput(ns('selected_drugs'),NULL, choices = unique(summarizedData$drug),
-                               selectize=T, multiple=T, selected = unique(summarizedData$drug)[1:3]),
+                   selectInput(ns('selected_drugs'),NULL, choices = unique(data$drug),
+                               selectize=T, multiple=T, selected = unique(data$drug)[1:3]),
                    uiOutput(ns("target"))
             ),
             actionButton(ns("updateButton"), "Update")
@@ -78,7 +78,23 @@ drugScreenModuleUI <- function(id){
 
 drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData = NULL, tag){
   
-  plot_names <- QC_plot_name(summarizedData)
+  if(is.null(summarizedData)){
+    summarizedData <- ddply(.data=rawData, .variables = c('drug', 'sample'),.fun = tmp_iterator, .parallel = T)
+    select_col <- c("drug","sample","trapezoid","IC50","maxResp")
+    summarizedData <- summarizedData[,select_col]
+    
+    summarizedData <- plyr::rename(summarizedData,c("trapezoid"="AUC"))
+    #convert IC50 to uM
+    summarizedData$IC50 <- summarizedData$IC50*1e+6
+    
+    #convert maxResp to 1-100 scale
+    summarizedData$maxResp <- summarizedData$maxResp*100
+    
+    #add missing columns
+    summarizedData$AC50 <- NA
+    summarizedData$target <- NA
+    summarizedData$curveClass <- NA
+  }
   
   ns <- NS(tag)
   
@@ -343,6 +359,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   QC_plot_list <- reactive({
     plotlist <- list()
     flt_drug_data <- get_filtered_drug_data()
+    plot_names <- QC_plot_name(flt_drug_data)
     plotlist <- lapply(plot_names, function(x){
       p <- ggplot(data=flt_drug_data, aes_string(x=x, fill="sample")) + geom_density(alpha=.7)
       p + theme_bw(base_size = 15) 
@@ -360,14 +377,9 @@ get_drugResponse_stats <- function(conc,viability,...){
   #res <- memoise(function(conc, viability,...) nplr(conc, viability,...))
   res <- nplr(conc, viability,...)
   results <- getAUC(res)
-  #results['goodNess_of_fit'] <- getGoodness(res)
-  #results['stdErr'] <- getStdErr(res)
   ICx_est = getEstimates(res, targets= c(.10,.20,.30,.40,.50,.60,.70,.80,.90))
   results['IC50'] = ICx_est[5,'x']
-  results['maxEfficacy'] = max(getYcurve(res)) #get the maximum efficacy of the drug
-  #results['bottom_asymptote'] = res@pars['bottom']
-  #results['top_asymptote'] = res@pars['top']
-  #results['hillSlope'] =  res@pars['scal']
+  results['maxResp'] = max(getYcurve(res)) #get the maximum efficacy of the drug
   
   fittedVals <- data.frame(fittedX = getXcurve(res),
                            fittedY = getYcurve(res))

@@ -1,7 +1,7 @@
 source("global.R")
 
 ui <- fluidPage(
-  drugScreenModuleUI("demo") 
+  drugScreenModuleUI(id = "demo", data = summarizedData) 
 )
 
 server <- function(input,output,session){
