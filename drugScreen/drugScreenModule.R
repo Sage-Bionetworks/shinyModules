@@ -97,7 +97,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     if(target_class){
       tagList(
         h5("Select by target class"),
-        selectInput(ns('selected_class'),NULL, choices = unique(summarizedData$target),
+        selectInput(ns('selected_class'),NULL, choices = c('ALL', unique(summarizedData$target)),
                     selectize=T, multiple=T)
       )
     }
@@ -115,7 +115,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
              # Max Response filter 
              sliderInput(ns('maxR_filter'), 'Max Response', 
                          min = mR_min, max = mR_max, value = c(mR_min,mR_max), 
-                         step=10, round=TRUE)
+                         step=10, round=TRUE, ticks = FALSE)
       )
     )
     if(show_ic50){
@@ -129,7 +129,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
                # IC50 filter
                sliderInput(ns('ic50_filter'), 'IC50 (uM)',
                            min = ic50_min, max = ic50_max, 
-                           value = c(ic50_min, ic50_max), step = floor((ic50_max - ic50_min)/5))
+                           value = c(ic50_min, ic50_max), step = floor((ic50_max - ic50_min)/5), ticks = FALSE)
         )
       )
     }
@@ -142,7 +142,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
                # AC50 filter
                sliderInput(ns('ac50_filter'), 'AC50 (uM)', 
                            min = ac50_min, max = ac50_max, 
-                           value = c(ac50_min, ac50_max), step = floor((ac50_max - ac50_min)/5))
+                           value = c(ac50_min, ac50_max), step = floor((ac50_max - ac50_min)/5), ticks = FALSE)
         )
       )
     }
@@ -155,7 +155,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
                # Curve class filter
                sliderInput(ns('curveClass'), 'Curve Class', 
                            min = cc_min, max = cc_max, value = c(cc_min,cc_max), 
-                           step=1, round=0)
+                           step=1, round=0, ticks = FALSE)
         )
       )
     }
@@ -239,7 +239,8 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     flt_drug_data <- flt_drug_data[! is.na(flt_drug_data$IC50), ]
     flt_drug_data <- flt_drug_data[! is.infinite(flt_drug_data$IC50), ]
     #convert to log10
-    flt_drug_data$IC50 <- log10(as.numeric(flt_drug_data$IC50)) 
+    flt_drug_data$IC50 <- log10(as.numeric(flt_drug_data$IC50))
+    labelVal <- quantile(flt_drug_data$IC50)
     drug_levels <- flt_drug_data %>%
       group_by(drug) %>%
       summarise(med=median(IC50, na.rm=T)) %>%
@@ -248,19 +249,19 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     flt_drug_data$drug <- factor(flt_drug_data$drug,levels=drug_levels)
     p <- ggplot(data=flt_drug_data, aes(x=drug, y=IC50, group=sample)) 
     p <- p + geom_point(aes(color=sample), size=3) + theme_bw(base_size = 15)
-    p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('log 10 IC50 (uM)')
+    p <- p + scale_y_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
+    p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('IC50 (uM)')
   })
   
   # AC50 plot
   output$drugScreen_AC50_plot <- renderPlot({
     validate(need(show_ac50, "AC50 data does not exist." ))
-    flog.debug("Plotting AC50...", name="server")
     flt_drug_data <- get_filtered_drug_data()
     #remove NA
     flt_drug_data <- flt_drug_data[! is.na(flt_drug_data["AC50"]), ]
     #convert to log10
     flt_drug_data["AC50"] <- log10(as.numeric(flt_drug_data[,"AC50"])) 
-    
+    labelVal <- quantile(flt_drug_data$AC50)
     drug_levels <- flt_drug_data %>%
       group_by(drug) %>%
       summarise(med=median("AC50", na.rm=T)) %>%
@@ -269,7 +270,8 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     flt_drug_data$drug <- factor(flt_drug_data$drug,levels=drug_levels)
     p <- ggplot(data=flt_drug_data, aes_string(x="drug", y="AC50", group="sample")) 
     p <- p + geom_point(aes(color=sample), size=3) + theme_bw(base_size = 15)
-    p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('log 10 AC50 (uM)')
+    p <- p + scale_y_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
+    p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('AC50 (uM)')
   })
   
   
@@ -312,13 +314,16 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     flog.debug("Plotting Dose Response...", name="server")
     normData <- normData()
     doseRespData <- doseRespData()
+    rangeVal <- quantile(log10(normData$conc*(1e+6)))
+    labelVal <- c(rangeVal[2], rangeVal[3], rangeVal[4])
     p <- ggplot(normData, aes(x = log10(conc*(1e+6)), y = normViability*100)) 
     p <- p + geom_point(aes_string(color="sample")) 
     p <- p + scale_color_brewer(type = "qual", palette = 2, direction = 1)
     p <- p + geom_line(data = doseRespData, aes(x = fittedX+6, y = fittedY*100, colour = sample, group = grp))
     p <- p + facet_wrap(~ drug, ncol = 4) + theme_bw(base_size = 15)
     p <- p + geom_hline(aes(yintercept=50), color='grey50', linetype='dashed')
-    p <- p + xlab('log10 micromolar conc') + ylab('cell viability %') 
+    p <- p + scale_x_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
+    p <- p + xlab('conc (uM)') + ylab('cell viability %') 
     p
   }, height=function(){get_plotHeight()})
   
@@ -347,9 +352,52 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   })
   
   output$QC_plots <- renderPlot({
-    flog.debug("Plotting QC plots...", name="server")
     QC_plot_list()
   })
+}
+
+get_drugResponse_stats <- function(conc,viability,...){
+  #res <- memoise(function(conc, viability,...) nplr(conc, viability,...))
+  res <- nplr(conc, viability,...)
+  results <- getAUC(res)
+  #results['goodNess_of_fit'] <- getGoodness(res)
+  #results['stdErr'] <- getStdErr(res)
+  ICx_est = getEstimates(res, targets= c(.10,.20,.30,.40,.50,.60,.70,.80,.90))
+  results['IC50'] = ICx_est[5,'x']
+  results['maxEfficacy'] = max(getYcurve(res)) #get the maximum efficacy of the drug
+  #results['bottom_asymptote'] = res@pars['bottom']
+  #results['top_asymptote'] = res@pars['top']
+  #results['hillSlope'] =  res@pars['scal']
+  
+  fittedVals <- data.frame(fittedX = getXcurve(res),
+                           fittedY = getYcurve(res))
+  results <- cbind(results,fittedVals)
+  results
+}
+
+
+tmp_iterator <- function(df){
+  tryCatch({
+    stats <- get_drugResponse_stats(df$conc, df$normViability, useLog=T)  
+  },error=function(e){
+    print(dim(df))
+    print(df$conc)
+    print(df$normViability)
+    print(unique(df$sample))
+    print(unique(df$drug))
+    stop('stopped')
+  })
+}
+
+QC_plot_name <- function(data){
+  result <- "maxResp"
+  if(!all(is.na(data$AUC))){
+    result <- c(result, "AUC")
+  }
+  if(!all(is.na(data$AC50))){
+    result <- c(result, "AC50")
+  }
+  return(result)
 }
 
 

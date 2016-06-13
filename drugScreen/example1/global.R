@@ -29,8 +29,6 @@ synapseLogin()
 
 flog.debug("Starting App...", name="server")
 
-source("../../lib/functions_drugScreen.R")
-
 flog.debug("Loading module...", name="server")
 source("../drugScreenModule.R")
 
