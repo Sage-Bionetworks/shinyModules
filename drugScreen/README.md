@@ -10,7 +10,7 @@
     | column name | description | optional/required? |
     |---|---|---|
     | sample | name of the cell line | **required** |
-    | replicate | blah | optional |
+    | replicate | replicate of the sample | optional |
     | conc | concentrantion of the drug | **required**|
     | drug |  name of the drug | **required** |
     | normViability |  normalized viability | **required** |
@@ -20,14 +20,14 @@
     | column name | description | optional/required? |
     |---|---|---|
     | sample | name of the cell line | **required** |
-    | AC50 | blah | optional |
-    | IC50 | blah | optional |
-    | maxResp | blah | **required** |
-    | curveClass | blah | optional |
-    | drugID | blah | optional |
+    | AC50 | value of AC50 in micromolar(uM) | optional |
+    | IC50 | value of IC59 in micromolar(uM) | optional |
+    | maxResp | value of maximum response in scale 1-100 | **required** |
+    | curveClass | defined curve class | optional |
+    | drugID | drug ID | optional |
     | drug | name of the drug| **required** |
     | target | target class of the drug | optional |
-    | AUC | blah | **required** |
+    | AUC | area under the curve using the Simpson’s rule or the trapezoid method| **required** |
 
 2. Unit/Scale
 
@@ -43,8 +43,7 @@
 
 
 
-
-### Output: A data-exploring shiny app	
+### Output: A data-exploring shiny app	with 3 components: a data selecting tab, a filter tab, and a plot-display window. 
 
 #### Example 1 - Using proccessed data
 ![alt text](../img/ds_example1_1.png "Example 1")
