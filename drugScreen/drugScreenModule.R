@@ -58,9 +58,9 @@ drugScreenModuleUI <- function(id, data){
                         plotOutput(ns("doseResp_plot"))
                ),
                tabPanel("Data",
-                        downloadButton(ns("downloadData")),
-                        br(),
-                        br(),
+                #        downloadButton(ns("downloadData")),
+                #        br(),
+                #        br(),
                         dataTableOutput(ns("drugScreen_dataTable"))
                ),
                tabPanel("QC",
@@ -348,12 +348,12 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     get_filtered_drug_data()
   }, options = list(lengthMenu = c(10,15), pageLength = 10))
   
-  output$downloadData <- downloadHandler(
-    filename = function() { 'summarizedData.csv' },
-    content = function(file) {
-      write.csv(get_filtered_drug_data(), file)
-    }
-  )
+#  output$downloadData <- downloadHandler(
+#    filename = function() { 'summarizedData.csv' },
+#    content = function(file) {
+#      write.csv(get_filtered_drug_data(), file)
+#    }
+#  )
   
   # QC plots
   QC_plot_list <- reactive({
