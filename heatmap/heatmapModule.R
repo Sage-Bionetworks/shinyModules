@@ -13,8 +13,9 @@ heatmapModuleUI <- function(id){
                  collapsed=FALSE, solidHeader=TRUE,
                  title = tagList(shiny::icon("th-list", lib="glyphicon"),
                                  "Label samples"),               
-                 selectInput(ns('heatmap_annotation_labels'),'Annotate Samples by:',
-                             choices=colnames(metaData), selectize=T, multiple=T, selected=colnames(metaData)[1])
+                 #selectInput(ns('heatmap_annotation_labels'),'Annotate Samples by:',
+                 #            choices=colnames(metaData), selectize=T, multiple=T, selected=colnames(metaData)[1])
+                 uiOutput(ns("anno"))
              ),
              #Clustering box
              box(width = NULL, status = "warning", solidHeader=TRUE, 
@@ -45,7 +46,7 @@ heatmapModuleUI <- function(id){
                 skin = "blue")
 }
 
-heatmapModule <- function(input,output,session,data){
+heatmapModule <- function(input,output,session,data,tag){
   filtered_dataset <- reactive({
     ds <- data
     flog.debug(sprintf("filtered ds dims: %s", dim(ds)), name="server")
@@ -55,6 +56,21 @@ heatmapModule <- function(input,output,session,data){
     ds_filtered
   })
   
+  filtered_metadata <- reactive({
+    m_eset <- filtered_dataset()
+    metaData <- pData(m_eset)
+    metaData
+  })
+
+  ns <- NS(tag)
+  output$anno <- renderUI({
+    metaData <- filtered_metadata()
+    tagList(
+      selectInput(ns('heatmap_annotation_labels'),'Annotate Samples by:',
+                  choices=colnames(metaData), selectize=T, multiple=T, selected=colnames(metaData)[1])
+    )
+  })
+
   heatmap_cache <- reactiveValues()
   
   #return the heatmap plot
@@ -72,8 +88,8 @@ heatmapModule <- function(input,output,session,data){
     validate( need( nrow(m) != 0, "Filtered matrix contains 0 features.") )
     validate( need(nrow(m) < 10000, "Filtered matrix contains > 10000 genes.") )
     
-    filtered_metadata <- pData(m_eset)
-    annotation <- get_heatmapAnnotation(input$heatmap_annotation_labels, filtered_metadata)
+    metadata <- filtered_metadata()
+    annotation <- get_heatmapAnnotation(input$heatmap_annotation_labels, metadata)
     
     fontsize_row <- ifelse(nrow(m) > 100, 0, 8)
     fontsize_col <- ifelse(ncol(m) > 50, 0, 8)    

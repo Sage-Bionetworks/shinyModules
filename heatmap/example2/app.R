@@ -5,7 +5,7 @@ ui <- fluidPage(
 )
 
 server <- function(input,output){
-  callModule(heatmapModule,"demo",eset.data)
+  callModule(heatmapModule,"demo",eset.data,"demo")
 }
 
 shinyApp(ui,server)

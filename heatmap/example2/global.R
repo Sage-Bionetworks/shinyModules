@@ -25,8 +25,8 @@ flog.debug("Starting App", name="server")
 
 source("../../lib/sbHeatmap.R")
 
-#get the global functions
-source("../global_functions.R")
+# #get the global functions
+# source("../global_functions.R")
 
 #get module
 source("../heatmapModule.R")
