@@ -58,9 +58,9 @@ drugScreenModuleUI <- function(id, data){
                         plotOutput(ns("doseResp_plot"))
                ),
                tabPanel("Data",
-                #        downloadButton(ns("downloadData")),
-                #        br(),
-                #        br(),
+                        downloadButton(ns("downloadData")),
+                        br(),
+                        br(),
                         dataTableOutput(ns("drugScreen_dataTable"))
                ),
                tabPanel("QC",
@@ -113,7 +113,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     if(target_class){
       tagList(
         h5("Select by target class"),
-        selectInput(ns('selected_class'),NULL, choices = c('ALL', unique(summarizedData$target)),
+        selectInput(ns('selected_class'),NULL, choices = unique(summarizedData$target),
                     selectize=T, multiple=T)
       )
     }
@@ -196,7 +196,8 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   get_drug_data <- eventReactive(input$updateButton,{
     validate(need(!is.null(input$samples), "At least one sample needs to be selected." ))
     validate(need(length(input$samples) <= 5, "You can select up to 5 samples." ))
-    validate(need(!is.null(input$selected_drugs), "At least one drug needs to be selected." ))
+    validate(need((!is.null(input$selected_drugs) || (target_class && !is.null(input$selected_class))), 
+                  "At least one drug/target class needs to be selected." ))
     flt_drug_data <- filter(summarizedData, drug %in% get_selected_drugs())  
     flt_drug_data <- filter(flt_drug_data, sample %in% get_selected_samples())  
     return(flt_drug_data)
@@ -348,12 +349,12 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     get_filtered_drug_data()
   }, options = list(lengthMenu = c(10,15), pageLength = 10))
   
-#  output$downloadData <- downloadHandler(
-#    filename = function() { 'summarizedData.csv' },
-#    content = function(file) {
-#      write.csv(get_filtered_drug_data(), file)
-#    }
-#  )
+  output$downloadData <- downloadHandler(
+    filename = function() { 'summarizedData.csv' },
+    content = function(file) {
+      write.csv(get_filtered_drug_data(), file)
+    }
+  )
   
   # QC plots
   QC_plot_list <- reactive({
