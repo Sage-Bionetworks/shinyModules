@@ -207,7 +207,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
 #                  "Selected samples have no associated data for the selected drug/target class." ))
     flt_drug_data <- filter(summarizedData, drug %in% get_selected_drugs())  
     flt_drug_data <- filter(flt_drug_data, sample %in% get_selected_samples())
-    flt_drug_data <- get_drug_data2()
+#    flt_drug_data <- get_drug_data2()
     return(flt_drug_data)
   })
   
