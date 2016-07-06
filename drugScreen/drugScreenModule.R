@@ -193,13 +193,21 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     drugs
   })
   
+#   get_drug_data2 <- reactive({
+#     flt_drug_data <- filter(summarizedData, drug %in% get_selected_drugs())  
+#     flt_drug_data <- filter(flt_drug_data, sample %in% get_selected_samples())
+#     flt_drug_data
+#   })
   get_drug_data <- eventReactive(input$updateButton,{
     validate(need(!is.null(input$samples), "At least one sample needs to be selected." ))
     validate(need(length(input$samples) <= 5, "You can select up to 5 samples." ))
     validate(need((!is.null(input$selected_drugs) || (target_class && !is.null(input$selected_class))), 
                   "At least one drug/target class needs to be selected." ))
+#    validate(need(!is.empty(get_drug_data2()), 
+#                  "Selected samples have no associated data for the selected drug/target class." ))
     flt_drug_data <- filter(summarizedData, drug %in% get_selected_drugs())  
-    flt_drug_data <- filter(flt_drug_data, sample %in% get_selected_samples())  
+    flt_drug_data <- filter(flt_drug_data, sample %in% get_selected_samples())
+    flt_drug_data <- get_drug_data2()
     return(flt_drug_data)
   })
   
@@ -273,19 +281,21 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   # AC50 plot
   output$drugScreen_AC50_plot <- renderPlot({
     validate(need(show_ac50, "AC50 data does not exist." ))
+    flog.debug("Plotting AC50...", name="server")
     flt_drug_data <- get_filtered_drug_data()
-    #remove NA
-    flt_drug_data <- flt_drug_data[! is.na(flt_drug_data["AC50"]), ]
+    #remove NA and Inf
+    flt_drug_data <- flt_drug_data[! is.na(flt_drug_data$AC50), ]
+    flt_drug_data <- flt_drug_data[! is.infinite(flt_drug_data$AC50), ]
     #convert to log10
-    flt_drug_data["AC50"] <- log10(as.numeric(flt_drug_data[,"AC50"])) 
+    flt_drug_data$AC50 <- log10(as.numeric(flt_drug_data$AC50))
     labelVal <- quantile(flt_drug_data$AC50)
     drug_levels <- flt_drug_data %>%
       group_by(drug) %>%
-      summarise(med=median("AC50", na.rm=T)) %>%
+      summarise(med=median(AC50, na.rm=T)) %>%
       arrange(desc(med)) %>% select(drug)
     drug_levels <- drug_levels$drug
     flt_drug_data$drug <- factor(flt_drug_data$drug,levels=drug_levels)
-    p <- ggplot(data=flt_drug_data, aes_string(x="drug", y="AC50", group="sample")) 
+    p <- ggplot(data=flt_drug_data, aes(x=drug, y=AC50, group=sample)) 
     p <- p + geom_point(aes(color=sample), size=3) + theme_bw(base_size = 15)
     p <- p + scale_y_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
     p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('AC50 (uM)')
