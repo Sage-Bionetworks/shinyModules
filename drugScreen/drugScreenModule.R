@@ -58,9 +58,9 @@ drugScreenModuleUI <- function(id, data){
                         plotOutput(ns("doseResp_plot"))
                ),
                tabPanel("Data",
-                        downloadButton(ns("downloadData")),
-                        br(),
-                        br(),
+                        #downloadButton(ns("downloadData")),
+                        #br(),
+                        #br(),
                         dataTableOutput(ns("drugScreen_dataTable"))
                ),
                tabPanel("QC",
@@ -100,7 +100,8 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   
   target_class <- !all(is.na(summarizedData$target))
   show_ic50 <- !all(is.na(summarizedData$IC50))
-  show_ac50 <- !all(is.na(summarizedData$AC50))
+  #show_ac50 <- !all(is.na(summarizedData$AC50))
+  show_ac50 <- reactiveValues(value = !all(is.na(summarizedData$AC50)))
   show_cc <- !all(is.na(summarizedData$curveClass))
   
   output$text <- renderUI({
@@ -121,8 +122,11 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   
   # filters
   output$filters <- renderUI({
-    validate(need(input$updateButton, "Please select samples and drugs, and click \"Update\" button."))
+    validate(need(input$updateButton, "Please select samples and drugs, and click \"Update\" button.")#,
+            # need(flt_drug_data$data, "ERROR")
+            )
     drug_data <- get_drug_data()
+    #drug_data <- flt_drug_data$data
     mR_min <- floor(min(drug_data$maxResp,na.rm = T))
     mR_max <- ceiling(max(drug_data$maxResp,na.rm = T))
     result <- list()
@@ -134,7 +138,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
                          step=10, round=TRUE, ticks = FALSE)
       )
     )
-    if(show_ic50){
+    if(show_ic50 && !all(is.na(drug_data$IC50))){
       ic50 <- drug_data$IC50
       ic50 <- ic50[!is.na(ic50)]
       ic50 <- ic50[!is.infinite(ic50)]
@@ -150,9 +154,12 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
       )
     }
     
-    if(show_ac50){
-      ac50_min <- floor(min(drug_data$AC50,na.rm = T))
-      ac50_max <- ceiling(max(drug_data$AC50,na.rm = T))
+    if(show_ac50$value && !all(is.na(drug_data$AC50))){
+      ac50 <- drug_data$AC50
+      ac50 <- ac50[!is.na(ac50)]
+      ac50 <- ac50[!is.infinite(ac50)]
+      ac50_min <- floor(min(ac50))
+      ac50_max <- ceiling(max(ac50))
       result[["AC50"]] <- (
         column(width=3,
                # AC50 filter
@@ -164,16 +171,22 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     }
     
     if(show_cc){
-      cc_min <- floor(min(drug_data$curveClass,na.rm = T))
-      cc_max <- ceiling(max(drug_data$curveClass,na.rm = T))
-      result[["cc"]] <- (
-        column(width=3,
-               # Curve class filter
-               sliderInput(ns('curveClass'), 'Curve Class', 
-                           min = cc_min, max = cc_max, value = c(cc_min,cc_max), 
-                           step=1, round=0, ticks = FALSE)
+      cc <- drug_data$curveClass
+      cc <- cc[!is.na(cc)]
+      cc <- cc[!is.infinite(cc)]
+      cc_min <- floor(min(cc))
+      cc_max <- ceiling(max(cc))
+      
+      if(cc_min != cc_max){
+        result[["cc"]] <- (
+          column(width=3,
+                 # Curve class filter
+                 sliderInput(ns('curveClass'), 'Curve Class', 
+                             min = cc_min, max = cc_max, value = c(cc_min,cc_max),
+                             step=1, round=0, ticks = FALSE)
+          )
         )
-      )
+      }
     }
     
     do.call(tagList, result)
@@ -189,43 +202,71 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     targetClass <- if(!all(is.na(summarizedData$target))) unique(summarizedData[summarizedData$target ==input$selected_class,]$drug) else NA
     drugs <- union(drugNames,targetClass)
     drugs <- drugs[!is.na(drugs)]
-    validate(need(length(drugs) != 0, "At least one drug or target class needs to be selected."))
+    #validate(need(length(drugs) != 0, "At least one drug or target class needs to be selected."))
     drugs
   })
   
-#   get_drug_data2 <- reactive({
-#     flt_drug_data <- filter(summarizedData, drug %in% get_selected_drugs())  
-#     flt_drug_data <- filter(flt_drug_data, sample %in% get_selected_samples())
-#     flt_drug_data
-#   })
+
+  flt_drug_data1 <- reactiveValues(data=NULL)
+
+  observe({
+    dataset <- filter(summarizedData, drug %in% get_selected_drugs())  
+    dataset <- filter(dataset, sample %in% get_selected_samples())
+    if(is.empty(dataset)){
+      flt_drug_data1$data <- NULL
+    }else{
+      flt_drug_data1$data <- dataset
+    }
+  })
+
   get_drug_data <- eventReactive(input$updateButton,{
-    validate(need(!is.null(input$samples), "At least one sample needs to be selected." ))
-    validate(need(length(input$samples) <= 5, "You can select up to 5 samples." ))
-    validate(need((!is.null(input$selected_drugs) || (target_class && !is.null(input$selected_class))), 
-                  "At least one drug/target class needs to be selected." ))
-#    validate(need(!is.empty(get_drug_data2()), 
-#                  "Selected samples have no associated data for the selected drug/target class." ))
-    flt_drug_data <- filter(summarizedData, drug %in% get_selected_drugs())  
-    flt_drug_data <- filter(flt_drug_data, sample %in% get_selected_samples())
-#    flt_drug_data <- get_drug_data2()
-    return(flt_drug_data)
+  #observeEvent(input$updateButton,{
+    validate(need(!is.null(input$samples), "At least one sample needs to be selected." ),
+             need(length(input$samples) <= 5, "You can select up to 5 samples." ),
+             need((!is.null(input$selected_drugs) || (target_class && !is.null(input$selected_class))), 
+                  "At least one drug/target class needs to be selected." ),
+             need(flt_drug_data1$data,"Selected samples have no associated data for the selected drug/target class.")
+             )
+#    dataset <- filter(summarizedData, drug %in% get_selected_drugs())  
+#    dataset <- filter(dataset, sample %in% get_selected_samples())
+#    if(is.empty(dataset)){
+#      flt_drug_data$data <- NULL
+#    }else{
+#      flt_drug_data$data <- dataset
+#    }
+    return(flt_drug_data1$data)
   })
   
   get_filtered_drug_data <- reactive({
+    validate(need(flt_drug_data1$data,"Selected samples have no associated data for the selected drug/target class."))
     drug_data <- get_drug_data()
-    filtered_data <- drug_data[drug_data$maxResp >= input$maxR_filter[1] & drug_data$maxResp <= input$maxR_filter[2],]
-    if(show_ic50){
-      filtered_data <- filtered_data[filtered_data$IC50 >= input$ic50_filter[1] & filtered_data$IC50 <= input$ic50_filter[2],]
+    #drug_data <- flt_drug_data$data
+    drug_data <- drug_data[drug_data$maxResp >= input$maxR_filter[1] & drug_data$maxResp <= input$maxR_filter[2],]
+    if(show_ic50 && !all(is.na(drug_data$IC50))){
+      drug_data <- drug_data[(drug_data$IC50 >= input$ic50_filter[1] & drug_data$IC50 <= input$ic50_filter[2])| is.na(drug_data$AC50),]
     }
-    if(show_ac50){
-      filtered_data <- filtered_data[filtered_data$AC50 >= input$ac50_filter[1] & filtered_data$AC50 <= input$ac50_filter[2],]
+    if(!is.null(show_ac50$value) && !all(is.na(drug_data$AC50))){
+      ac50_min <- input$ac50_filter[1]
+      ac50_max <- input$ac50_filter[2]
+
+      drug_data <- drug_data[(drug_data$AC50 >= ac50_min & drug_data$AC50 <= ac50_max) | is.na(drug_data$AC50),]
+    #  drug_data <- drug_data[which(AC50 >= ac50_min & AC50 <= ac50_max),]
     }
-    if(show_cc){
-      filtered_data <- filtered_data[filtered_data$curveClass >= input$curveClass[1] & filtered_data$curveClass <= input$curveClass[2],]
+    cc <- drug_data$curveClass
+    cc_min <- min(cc)
+    cc_max <- max(cc)
+    if(show_cc && cc_min != cc_max){
+      drug_data <- drug_data[drug_data$curveClass >= input$curveClass[1] & drug_data$curveClass <= input$curveClass[2],]
     }
     
-    filtered_data <- filtered_data[!is.na(filtered_data$sample),]
-    filtered_data
+    drug_data <- drug_data[!is.na(drug_data$sample),]
+#    filtered_data
+    drug_data
+  })
+
+  observe({
+    data <- get_filtered_drug_data()
+    show_ac50$value2 <- !is.null(show_ac50$value) && !all(is.na(data$AC50))
   })
   
   x_angle <- reactive({
@@ -242,22 +283,28 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   # Max Response Plot
   output$drug_max_resp <- renderPlot({
     flog.debug("Plotting Max Response...", name="server")
+    #validate(need(!is.empty(get_filtered_drug_data()),"Selected samples have no associated data for the selected drug/target class."))
     flt_drug_data <- get_filtered_drug_data()
+    flt_drug_data <- flt_drug_data[! is.na(flt_drug_data$maxResp), ]
+    flt_drug_data <- flt_drug_data[! is.infinite(flt_drug_data$maxResp), ]
+    
     drug_levels <- flt_drug_data %>%
       group_by(drug) %>%
       summarise(med=median(maxResp, na.rm=T)) %>%
       arrange(desc(med)) %>% select(drug)
     drug_levels <- drug_levels$drug
+    
     flt_drug_data$drug <- factor(flt_drug_data$drug,levels=drug_levels)
+    
     p <- ggplot(data=flt_drug_data, aes(x=drug, y=maxResp, group=sample)) 
     p <- p + geom_point(aes(color=sample), size=3) + theme_bw(base_size = 15)
-    p <- p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('Response')
+    p <- p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('Max Response')
     p
   })
   
   # IC50 plot
   output$drugScreen_IC50_plot <- renderPlot({
-    validate(need(show_ic50, "IC50 data does not exist." ))
+    validate(need(show_ic50, "IC50 data is not available." ))
     flog.debug("Plotting IC50...", name="server")
     flt_drug_data <- get_filtered_drug_data()
     #remove NA and Inf
@@ -280,7 +327,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   
   # AC50 plot
   output$drugScreen_AC50_plot <- renderPlot({
-    validate(need(show_ac50, "AC50 data does not exist." ))
+    validate(need(show_ac50$value2, "AC50 data is not available." ))
     flog.debug("Plotting AC50...", name="server")
     flt_drug_data <- get_filtered_drug_data()
     #remove NA and Inf
@@ -337,7 +384,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   })
   
   output$doseResp_plot <- renderPlot({
-    validate(need(rawData, "Dose response is not available."))
+    validate(need(rawData, "Dose response data is not available."))
     flog.debug("Plotting Dose Response...", name="server")
     normData <- normData()
     doseRespData <- doseRespData()
@@ -356,15 +403,16 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   
   # Data table
   output$drugScreen_dataTable <- renderDataTable({
+    #flt_drug_data$data
     get_filtered_drug_data()
   }, options = list(lengthMenu = c(10,15), pageLength = 10))
   
-  output$downloadData <- downloadHandler(
-    filename = function() { 'summarizedData.csv' },
-    content = function(file) {
-      write.csv(get_filtered_drug_data(), file)
-    }
-  )
+#   output$downloadData <- downloadHandler(
+#     filename = function() { 'summarizedData.csv' },
+#     content = function(file) {
+#       write.csv(get_filtered_drug_data(), file)
+#     }
+#   )
   
   # QC plots
   QC_plot_list <- reactive({
