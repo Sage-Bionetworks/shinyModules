@@ -28,7 +28,7 @@ flog.debug("Starting App", name="server")
 source("../../lib/sbHeatmap.R")
 
 #get module
-source("../expressionViewerModule2.R")
+source("../expressionViewerModule.R")
 
 #get data
 source("getData.R")

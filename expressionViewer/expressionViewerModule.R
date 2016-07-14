@@ -67,7 +67,7 @@ expressionViewerModule <- function(input,output,session,data,tag){
   dataset <- reactive({
     ds <- data
     flog.debug(sprintf("filtered ds dims: %s", dim(ds)), name="server")
-    rows_to_keep <- order(apply(exprs(ds),1,var),decreasing=T)[1:20]
+    rows_to_keep <- order(apply(exprs(ds),1,var),decreasing=T)[1:50]
     ds_filtered <- ds[rows_to_keep, ]
     
     ds_filtered
