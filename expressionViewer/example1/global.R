@@ -2,7 +2,7 @@ options(stringsAsFactors = F)
 options(warn=-1)
 
 library("devtools")
-library("synapseClient")
+#library("synapseClient")
 library("shiny")
 library("shinydashboard")
 library("dplyr")
@@ -12,6 +12,7 @@ library("futile.logger")
 library("Biobase")
 library("data.table")
 library("ggplot2")
+library("gridExtra")
 
 # Set up logging
 flog.threshold(DEBUG, name='server')
@@ -20,14 +21,14 @@ flog.threshold(DEBUG, name='global')
 flog.threshold(INFO, name='synapse')
 
 #login to synapse
-synapseLogin()
+#synapseLogin()
 
 flog.debug("Starting App", name="server")
 
 source("../../lib/sbHeatmap.R")
 
 #get module
-source("../expressionViewerModule.R")
+source("../expressionViewerModule2.R")
 
 #get data
 source("getData.R")
