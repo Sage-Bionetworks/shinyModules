@@ -112,6 +112,11 @@ expressionViewerModule <- function(input,output,session,data,tag){
   
   heatmap_cache <- reactiveValues()
   
+  anno_labels <- reactive({
+    validate(need(length(input$annotation_labels) <= 2, "Please select at most 2 labels."))
+    input$annotation_labels
+  })
+  
   #return the heatmap plot
   output$heatmap <- renderPlot({  
     flog.debug("Making heatmap", name='server')
@@ -127,7 +132,8 @@ expressionViewerModule <- function(input,output,session,data,tag){
     validate( need( nrow(m) != 0, "Filtered matrix contains 0 genes.") )
     
     metadata <- metadata()
-    annotation <- get_heatmapAnnotation(input$annotation_labels, metadata)
+    anno <- anno_labels()
+    annotation <- get_heatmapAnnotation(anno, metadata)
     
     fontsize_row <- ifelse(nrow(m) > 100, 0, 8)
     fontsize_col <- ifelse(ncol(m) > 50, 0, 8)    
@@ -152,6 +158,7 @@ expressionViewerModule <- function(input,output,session,data,tag){
   
   output$PCA_plot <- renderPlot({
     data <- exprs(filtered_dataset())
+    anno <- anno_labels()
     #colorBy <- F
     pca_res <- prcomp(data, center=F, scale=F)
     df <- data.frame(pca_res$x[,c(1:5)])
