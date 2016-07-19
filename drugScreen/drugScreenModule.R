@@ -41,6 +41,7 @@ drugScreenModuleUI <- function(id, data){
       ),
       
       fluidRow(
+#        uiOutput(ns("myTabs"))
         tabBox(width = 12,
                tabPanel("Max Response",
                         plotOutput(ns("drug_max_resp"))
@@ -50,6 +51,9 @@ drugScreenModuleUI <- function(id, data){
                ),
                tabPanel("AC50",
                         plotOutput(ns("drugScreen_AC50_plot"))
+               ),
+               tabPanel("AUC",
+                        plotOutput(ns("drugScreen_AUC_plot"))
                ),
                tabPanel("Dose Response",
                         helpText("If more than 8 drugs are selected, only the first 8 drugs will be showing."),
@@ -102,6 +106,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   show_ic50 <- !all(is.na(summarizedData$IC50))
   #show_ac50 <- !all(is.na(summarizedData$AC50))
   show_ac50 <- reactiveValues(value = !all(is.na(summarizedData$AC50)))
+  show_auc <- !all(is.na(summarizedData$AUC))
   show_cc <- !all(is.na(summarizedData$curveClass))
   
   output$text <- renderUI({
@@ -348,6 +353,26 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('AC50 (uM)')
   })
   
+  # AUC plot
+  output$drugScreen_AUC_plot <- renderPlot({
+    validate(need(show_auc, "AUC data is not available." ))
+    flog.debug("Plotting AUC...", name="server")
+    flt_drug_data <- get_filtered_drug_data()
+    #remove NA and Inf
+    flt_drug_data <- flt_drug_data[! is.na(flt_drug_data$AUC), ]
+    flt_drug_data <- flt_drug_data[! is.infinite(flt_drug_data$AUC), ]
+
+    labelVal <- quantile(flt_drug_data$AUC)
+    drug_levels <- flt_drug_data %>%
+      group_by(drug) %>%
+      summarise(med=median(AUC, na.rm=T)) %>%
+      arrange(desc(med)) %>% select(drug)
+    drug_levels <- drug_levels$drug
+    flt_drug_data$drug <- factor(flt_drug_data$drug,levels=drug_levels)
+    p <- ggplot(data=flt_drug_data, aes(x=drug, y=AUC, group=sample)) 
+    p <- p + geom_point(aes(color=sample), size=3) + theme_bw(base_size = 15)
+    p + theme(text = element_text(size=20), axis.text.x=element_text(angle=x_angle()[1], hjust=x_angle()[2])) + xlab('Drug') + ylab('AUC')
+  })
   
   # Dose Response plot
   normData <- reactive({

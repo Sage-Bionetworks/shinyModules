@@ -20,6 +20,7 @@ library("doMC")
 library("NMF")
 library("gridExtra")
 library("futile.logger")
+library("spatstat")
 registerDoMC(4)
 
 flog.threshold(DEBUG, name='server')
