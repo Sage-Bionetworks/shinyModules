@@ -29,3 +29,7 @@ m <- t(scale(t(expr)))
 eset.data <- ExpressionSet(assayData=as.matrix(m),
                            phenoData=AnnotatedDataFrame(metaData),
                            featureData=AnnotatedDataFrame(features))
+
+MSIGDB_syn<-synGet("syn2227979")
+load(MSIGDB_syn@filePath) #available as MSigDB R object
+pathways_list <- c(MSigDB$C2.CP.BIOCARTA, MSigDB$C2.CP.KEGG, MSigDB$C2.CP.REACTOME)
