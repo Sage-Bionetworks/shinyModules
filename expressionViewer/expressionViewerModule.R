@@ -5,8 +5,13 @@ expressionViewerModuleUI <- function(id){
   mySidebar <- dashboardSidebar(disable=TRUE),
   
   myBody <-dashboardBody(
+    tags$head(tags$style(HTML('
+                                .col-sm-3, {
+                                  padding:0 !important;
+                                }
+                              '))),
     fluidRow(
-      column(width = 3,
+      column(width = 2,style='padding:0px;',
              
              # Choose sample labels
              box(width=NULL, status='primary', collapsible=TRUE, 
@@ -21,6 +26,7 @@ expressionViewerModuleUI <- function(id){
                  collapsed=FALSE, solidHeader=TRUE,
                  title = tagList(shiny::icon("check", lib="glyphicon"),
                                  "Select genes"),
+                 selectInput(ns("select_by"), "Select by", choices = c("gene name","pathway"),selected = "gene name"),
                  uiOutput(ns("genes")),
                  actionButton(ns("refreshGene"), "Refresh")
              ),
@@ -43,17 +49,18 @@ expressionViewerModuleUI <- function(id){
                  checkboxInput(ns('cluster_rows'), 'Cluster the rows', value = TRUE)
              )
      ),
-      column(width = 9,
+      column(width = 10,style='padding:0px;',
              tabBox(width = 12, #solidHeader = TRUE,
                  tabPanel("Heatmap",
-                  plotOutput(ns("heatmap"), height = 650)
-                 ),
+                          plotOutput(ns("heatmap"), height = 650)
+                          ),
                  tabPanel("PCA",
-                   plotOutput(ns("PCA_plot"))
-                 ),
+                          helpText("Always colored by the first selected annotation label."),
+                          plotOutput(ns("PCA_plot"))
+                          ),
                  tabPanel("Drugs",
-                   h5("placeholder")
-                 )
+                          h5("placeholder")
+                          )
              )   
             )    
     )
@@ -113,6 +120,7 @@ expressionViewerModule <- function(input,output,session,data,tag){
   heatmap_cache <- reactiveValues()
   
   anno_labels <- reactive({
+    validate(need(length(input$annotation_labels) > 0, "Please select at least 1 label."))
     validate(need(length(input$annotation_labels) <= 2, "Please select at most 2 labels."))
     input$annotation_labels
   })
@@ -158,38 +166,50 @@ expressionViewerModule <- function(input,output,session,data,tag){
   
   output$PCA_plot <- renderPlot({
     data <- exprs(filtered_dataset())
-    anno <- anno_labels()
-    #colorBy <- F
-    pca_res <- prcomp(data, center=F, scale=F)
+    m_data <- metadata() 
+    anno <- anno_labels()[1]
+    pca_res <- prcomp(t(data), center=F, scale=F)
     df <- data.frame(pca_res$x[,c(1:5)])
-    df$sampleID <- rownames(df)
-    percent_variation <- pca_res$sdev^2/sum(pca_res$sdev^2) * 100
-    #if(colorBy != F){
-    #  temp = data.frame(sampleID = names(colorBy), colorBy = colorBy)
-    #  df <- merge(df,temp, by="sampleID")
-    #  p <- ggplot(data=df, aes(x=PC1,y=PC2, color=colorBy)) 
-    #} else {
-#       p1 <- ggplot(data=df, aes(x=PC1,y=PC2)) 
-#     #}
 
-    p1 <- PC_plot(df,percent_variation,1,2)
-    p2 <- PC_plot(df,percent_variation,2,3)
-    p3 <- PC_plot(df,percent_variation,3,4)
-    p4 <- PC_plot(df,percent_variation,4,5)
-    plotlist <- list(p1,p2,p3,p4)
-    do.call(grid.arrange, c(plotlist, list(ncol = 2)))
+    percent_variation <- pca_res$sdev^2/sum(pca_res$sdev^2) * 100
+
+    df <- merge(df,m_data,by="row.names")
+    rownames(df) <- df$Row.names
+    df$Row.names <- NULL
+
+    plotlist <- lapply(1:4, function(i){
+      x <- paste0('PC',i)
+      y <- paste0('PC',i+1)
+      p <- ggplot(data=df, aes_string(x=x,y=y,color=anno))
+      p <- p + geom_point() + theme_bw(base_size = 14)
+      p <- p + xlab(paste0(x,' - (', round(percent_variation[i],2), '%)' ))  + ylab(paste0(y,' - ( ', round(percent_variation[i+1],2), '%)' ))
+    })
+    grid_arrange_shared_legend(plotlist, ncol = 2, nrow = 2)
   })
 }
 
-PC_plot <- function(df,percent_variation,var1,var2){
-  x <- paste0('PC',var1)
-  y <- paste0('PC',var2)
+grid_arrange_shared_legend <- function(plots, ncol = length(plots), nrow = 1, position = c("bottom", "right")) {
   
-  p <- ggplot(data=df, aes_string(x=x,y=y))
-  p <- p + geom_point() + theme_bw(base_size = 14)
-  p <- p + xlab(paste0(x,' - (', round(percent_variation[var1],2), '%)' ))  + ylab(paste0(y,' - ( ', round(percent_variation[var2],2), '%)' ))
+  position <- match.arg(position)
+  g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+  legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+  lheight <- sum(legend$height)
+  lwidth <- sum(legend$width)
+  gl <- lapply(plots, function(x) x + theme(legend.position="none"))
+  gl <- c(gl, ncol = ncol, nrow = nrow)
   
-  p
+  combined <- switch(position,
+                     "bottom" = arrangeGrob(do.call(arrangeGrob, gl),
+                                            legend,
+                                            ncol = 1,
+                                            heights = unit.c(unit(1, "npc") - lheight, lheight)),
+                     "right" = arrangeGrob(do.call(arrangeGrob, gl),
+                                           legend,
+                                           ncol = 2,
+                                           widths = unit.c(unit(1, "npc") - lwidth, lwidth)))
+  grid.newpage()
+  grid.draw(combined)
+  
 }
 
 clean_list <- function(x) {
