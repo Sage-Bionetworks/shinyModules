@@ -11,7 +11,7 @@ expressionViewerModuleUI <- function(id){
                                 }
                               '))),
     fluidRow(
-      column(width = 2,style='padding:0px;',
+      column(width = 3,style='padding-right:0px;',
              
              # Choose sample labels
              box(width=NULL, status='primary', collapsible=TRUE, 
@@ -48,14 +48,14 @@ expressionViewerModuleUI <- function(id){
                  checkboxInput(ns('cluster_rows'), 'Cluster the rows', value = TRUE)
              )
      ),
-      column(width = 10,style='padding:0px;',
+      column(width = 9,style='padding-left:0px;',
              tabBox(width = 12, #solidHeader = TRUE,
                  tabPanel("Heatmap",
                           plotOutput(ns("heatmap"), height = 650)
                           ),
                  tabPanel("PCA",
-                          helpText("Always colored by the first selected annotation label."),
-                          plotOutput(ns("PCA_plot"))
+                          uiOutput(ns("helpTxtPCA")),
+                          plotOutput(ns("PCA_plot"),height = 600)
                           ),
                  tabPanel("Drugs",
                           h5("placeholder")
@@ -113,8 +113,8 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
         actionButton(ns("refreshGene"), "Refresh")
         ),
       Pathways = tagList(
-        tags$textarea(paste0(c(names(pathways_list)), collapse="\n"),
-          rows=5, id=ns("selected_pathways"), style="width: 100%"),
+        selectInput(ns('selected_pathways'),"",choices=names(pathways_list), 
+          selectize=T, multiple=T, selected=names(pathways_list)[1:3]),
         actionButton(ns("refreshPathway"), "Refresh")
         )
       )
@@ -134,7 +134,6 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
         geneList<- intersect(geneList, rownames(fData(ds)))
     }else if(input$select_by == "Pathways"){
         pathways <- isolate(input$selected_pathways)
-        pathways <- clean_list(pathways)
         geneList <- as.character(unlist(pathways_list[pathways]))
         geneList<- intersect(geneList, rownames(fData(ds)))
     }
@@ -155,7 +154,6 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
   heatmap_cache <- reactiveValues()
   
   anno_labels <- reactive({
-    validate(need(length(input$annotation_labels) > 0, "Please select at least 1 label."))
     validate(need(length(input$annotation_labels) <= 2, "Please select at most 2 labels."))
     input$annotation_labels
   })
@@ -199,11 +197,18 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
     
   })
   
+  output$helpTxtPCA <- renderUI({
+    anno <- anno_labels()
+    if(is.character(anno)){
+      helpText("Always colored by the first selected annotation label.")
+    }
+  })
+
   output$PCA_plot <- renderPlot({
-    data <- exprs(filtered_dataset())
+    e_data <- exprs(dataset())
     m_data <- metadata() 
-    anno <- anno_labels()[1]
-    pca_res <- prcomp(t(data), center=F, scale=F)
+    anno <- anno_labels()
+    pca_res <- prcomp(t(e_data), center=F, scale=F)
     df <- data.frame(pca_res$x[,c(1:5)])
 
     percent_variation <- pca_res$sdev^2/sum(pca_res$sdev^2) * 100
@@ -215,16 +220,25 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
     plotlist <- lapply(1:4, function(i){
       x <- paste0('PC',i)
       y <- paste0('PC',i+1)
-      p <- ggplot(data=df, aes_string(x=x,y=y,color=anno))
+      if(is.character(anno)){
+        p <- ggplot(data=df, aes_string(x=x,y=y,color=anno[1]))
+      }else{
+        p <- ggplot(data=df, aes_string(x=x,y=y))
+      }
       p <- p + geom_point() + theme_bw(base_size = 14)
       p <- p + xlab(paste0(x,' - (', round(percent_variation[i],2), '%)' ))  + ylab(paste0(y,' - ( ', round(percent_variation[i+1],2), '%)' ))
     })
-    grid_arrange_shared_legend(plotlist, ncol = 2, nrow = 2)
+
+    if(is.character(anno)){
+        grid_arrange_shared_legend(plotlist, ncol = 2, nrow = 2)
+    }else{
+        do.call(grid.arrange, c(plotlist, list(ncol = 2)))
+    }
   })
 }
 
-grid_arrange_shared_legend <- function(plots, ncol = length(plots), nrow = 1, position = c("bottom", "right")) {
-  
+
+grid_arrange_shared_legend <- function(plots, ncol = length(plots), nrow = 1, position = c("bottom", "right")) {  
   position <- match.arg(position)
   g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
   legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
