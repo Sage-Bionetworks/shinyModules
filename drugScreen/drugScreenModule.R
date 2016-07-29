@@ -41,7 +41,6 @@ drugScreenModuleUI <- function(id, data){
       ),
       
       fluidRow(
-#        uiOutput(ns("myTabs"))
         tabBox(width = 12,
                tabPanel("Max Response",
                         plotOutput(ns("drug_max_resp"))
@@ -56,7 +55,7 @@ drugScreenModuleUI <- function(id, data){
                         plotOutput(ns("drugScreen_AUC_plot"))
                ),
                tabPanel("Dose Response",
-                        helpText("If more than 8 drugs are selected, only the first 8 drugs will be showing."),
+                        uiOutput(ns("helpTxt")),
                         #checkboxInput(ns("replicate"), "use \"replicate\""),
                         #br(),
                         plotOutput(ns("doseResp_plot"))
@@ -207,7 +206,6 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     targetClass <- if(!all(is.na(summarizedData$target))) unique(summarizedData[summarizedData$target ==input$selected_class,]$drug) else NA
     drugs <- union(drugNames,targetClass)
     drugs <- drugs[!is.na(drugs)]
-    #validate(need(length(drugs) != 0, "At least one drug or target class needs to be selected."))
     drugs
   })
   
@@ -217,7 +215,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   observe({
     dataset <- filter(summarizedData, drug %in% get_selected_drugs())  
     dataset <- filter(dataset, sample %in% get_selected_samples())
-    if(is.empty(dataset)){
+    if(nrow(dataset) == 0){
       flt_drug_data1$data <- NULL
     }else{
       flt_drug_data1$data <- dataset
@@ -225,27 +223,18 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   })
 
   get_drug_data <- eventReactive(input$updateButton,{
-  #observeEvent(input$updateButton,{
     validate(need(!is.null(input$samples), "At least one sample needs to be selected." ),
              need(length(input$samples) <= 5, "You can select up to 5 samples." ),
              need((!is.null(input$selected_drugs) || (target_class && !is.null(input$selected_class))), 
                   "At least one drug/target class needs to be selected." ),
              need(flt_drug_data1$data,"Selected samples have no associated data for the selected drug/target class.")
              )
-#    dataset <- filter(summarizedData, drug %in% get_selected_drugs())  
-#    dataset <- filter(dataset, sample %in% get_selected_samples())
-#    if(is.empty(dataset)){
-#      flt_drug_data$data <- NULL
-#    }else{
-#      flt_drug_data$data <- dataset
-#    }
     return(flt_drug_data1$data)
   })
   
   get_filtered_drug_data <- reactive({
     validate(need(flt_drug_data1$data,"Selected samples have no associated data for the selected drug/target class."))
     drug_data <- get_drug_data()
-    #drug_data <- flt_drug_data$data
     drug_data <- drug_data[drug_data$maxResp >= input$maxR_filter[1] & drug_data$maxResp <= input$maxR_filter[2],]
     if(show_ic50 && !all(is.na(drug_data$IC50))){
       drug_data <- drug_data[(drug_data$IC50 >= input$ic50_filter[1] & drug_data$IC50 <= input$ic50_filter[2])| is.na(drug_data$AC50),]
@@ -255,7 +244,6 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
       ac50_max <- input$ac50_filter[2]
 
       drug_data <- drug_data[(drug_data$AC50 >= ac50_min & drug_data$AC50 <= ac50_max) | is.na(drug_data$AC50),]
-    #  drug_data <- drug_data[which(AC50 >= ac50_min & AC50 <= ac50_max),]
     }
     cc <- drug_data$curveClass
     cc_min <- min(cc)
@@ -265,7 +253,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     }
     
     drug_data <- drug_data[!is.na(drug_data$sample),]
-#    filtered_data
+
     drug_data
   })
 
@@ -288,7 +276,6 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   # Max Response Plot
   output$drug_max_resp <- renderPlot({
     flog.debug("Plotting Max Response...", name="server")
-    #validate(need(!is.empty(get_filtered_drug_data()),"Selected samples have no associated data for the selected drug/target class."))
     flt_drug_data <- get_filtered_drug_data()
     flt_drug_data <- flt_drug_data[! is.na(flt_drug_data$maxResp), ]
     flt_drug_data <- flt_drug_data[! is.infinite(flt_drug_data$maxResp), ]
@@ -408,6 +395,12 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
     }
   })
   
+  output$helpTxt <- renderUI({
+    if(!is.null(rawData)){
+       helpText("If more than 8 drugs are selected, only the first 8 drugs will be showing.")
+     }
+  })
+ 
   output$doseResp_plot <- renderPlot({
     validate(need(rawData, "Dose response data is not available."))
     flog.debug("Plotting Dose Response...", name="server")
