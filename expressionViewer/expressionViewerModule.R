@@ -113,7 +113,7 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
         actionButton(ns("refreshGene"), "Refresh")
         ),
       Pathways = tagList(
-        selectInput(ns('selected_pathways'),"",choices=names(pathways_list), 
+        selectInput(ns('selected_pathways'),NULL,choices=names(pathways_list), 
           selectize=T, multiple=T, selected=names(pathways_list)[1:3]),
         actionButton(ns("refreshPathway"), "Refresh")
         )
