@@ -1,4 +1,4 @@
-## Shiny Module Drug Screen
+## Drug Screen Shiny Module
 This shiny app allows users to explore and visualize a drug screen dataset. It has 3 components: a data selecting tab, a filter tab, and a plot-display window. 
 
 In the display window, there are 7 tabs: Max Response, IC50, AC50, AUC, Dose Response, Data, and QC.
