@@ -56,7 +56,7 @@ drugScreenModuleUI <- function(id, data){
                         plotOutput(ns("drugScreen_AUC_plot"))
                ),
                tabPanel("Dose Response",
-                        helpText("If more than 8 drugs are selected, only the first 8 drugs will be showing."),
+                        uiOutput(ns("helpTxt")),
                         #checkboxInput(ns("replicate"), "use \"replicate\""),
                         #br(),
                         plotOutput(ns("doseResp_plot"))
@@ -217,7 +217,7 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
   observe({
     dataset <- filter(summarizedData, drug %in% get_selected_drugs())  
     dataset <- filter(dataset, sample %in% get_selected_samples())
-    if(is.empty(dataset)){
+    if(nrow(dataset) == 0){
       flt_drug_data1$data <- NULL
     }else{
       flt_drug_data1$data <- dataset
@@ -405,6 +405,12 @@ drugScreenModule <- function(input,output,session,summarizedData = NULL, rawData
       return(300)
     }else{
       return(300*2)
+    }
+  })
+
+  output$helpTxt <- renderUI({
+    if(!is.null(rawData)){
+      helpText("If more than 8 drugs are selected, only the first 8 drugs will be showing.")
     }
   })
   
