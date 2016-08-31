@@ -51,7 +51,8 @@ expressionViewerModuleUI <- function(id){
       column(width = 9,style='padding-left:0px;',
              tabBox(width = 12, #solidHeader = TRUE,
                  tabPanel("Heatmap",
-                          plotOutput(ns("heatmap"), height = 650)
+                          plotOutput(ns("heatmap"), height = 650),
+                          uiOutput(ns("helpTextHeatmap"))
                           ),
                  tabPanel("PCA",
                           uiOutput(ns("helpTxtPCA")),
@@ -74,6 +75,7 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
     ds <- data
     flog.debug(sprintf("filtered ds dims: %s", dim(ds)), name="server")
     rows_to_keep <- apply(exprs(ds), 1, var) > 0.1
+    rows_to_keep <- names(rows_to_keep)[!is.na(rows_to_keep)]
     #rows_to_keep <- order(apply(exprs(ds),1,var),decreasing=T)[1:50]
     ds_filtered <- ds[rows_to_keep, ]
     
@@ -95,15 +97,25 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
     )
   })
   
+  num_genes <- reactiveValues()
+
   output$genes <- renderUI({
     m_eset <- dataset()
     rows_to_keep <- order(apply(exprs(m_eset),1,var),decreasing=T)
-    if(rows_to_keep > 500){
-      rows_to_keep = rows_to_keep[1:500]
+#     if(length(rows_to_keep) > 500){
+#       rows_to_keep = rows_to_keep[1:500]
+#     }
+#     m_top500 <- m_eset[rows_to_keep,]
+#     geneList <- rownames(m_top500)
+    if(length(rows_to_keep) > 15){
+      rows_to_keep <- rows_to_keep[1:15]
     }
-    m_top500 <- m_eset[rows_to_keep,]
-    geneList <- rownames(m_top500)
-    
+    m_top15 <- m_eset[rows_to_keep,]
+    geneList <- rownames(m_top15)
+
+    num_genes$found <- length(geneList)
+    num_genes$selected <- length(geneList)
+
     select_by <- input$select_by
 
     switch(select_by,
@@ -131,12 +143,14 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
     if(input$select_by == "Gene_Names"){
         geneList <- isolate(input$selected_genes)
         geneList <- clean_list(geneList)
+        num_genes$selected <- length(geneList)
         geneList<- intersect(geneList, rownames(fData(ds)))
     }else if(input$select_by == "Pathways"){
         pathways <- isolate(input$selected_pathways)
         geneList <- as.character(unlist(pathways_list[pathways]))
         geneList<- intersect(geneList, rownames(fData(ds)))
     }
+
     geneList
   })
 
@@ -147,7 +161,6 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
     validate(need(length(selected_genes) < 501, "Number of total selected genes is at most 500."))
 
     ds <- ds[selected_genes,]
-
     ds
   })
   
@@ -167,6 +180,8 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
     
     m_eset <- filtered_dataset()
     m <- exprs(m_eset)
+    num_genes$found <- nrow(m)
+
     m <- data.matrix(m)
     
     validate( need( ncol(m) != 0, "Filtered matrix contains 0 samples.") )
@@ -195,6 +210,14 @@ expressionViewerModule <- function(input,output,session,data,pathways_list,tag){
                                         cluster_rows=cluster_rows, cluster_cols=cluster_cols,
                                         drawColD=FALSE)
     
+  })
+
+  output$helpTextHeatmap <- renderUI({
+    if(input$select_by == "Gene_Names"){
+      num_found <- num_genes$found
+      num_selected <- num_genes$selected    
+      helpText(paste(num_found, "out of", num_selected, "selected genes are found in the dataset."))
+    }
   })
   
   output$helpTxtPCA <- renderUI({
@@ -264,7 +287,7 @@ grid_arrange_shared_legend <- function(plots, ncol = length(plots), nrow = 1, po
 clean_list <- function(x) {
   # Split by space, comma or new lines
   x <- as.character(x)
-  x <- unlist(strsplit(x, split=c('[\\s+,\\n+\\r+)]'),perl=T))
+  x <- unlist(strsplit(x, split=c('[\\s+,\\n+\\r+,\\,,\\;]'),perl=T))
   
   # remove the blank entries
   x <- x[!(x == "")]
