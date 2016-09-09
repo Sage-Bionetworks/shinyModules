@@ -45,9 +45,9 @@ combinationDrugScreenModuleUI <- function(id,sampleInfo){
       fluidRow(
         box(width = 6,
             plotOutput(ns("doseResp_plot1"),height = "520px")
-            #helpText("Dose response plots")
         ),
         box(width = 6,
+            helpText("placeholder for nplr"),
             plotOutput(ns("doseResp_plot2"),height = "520px")
         ),
         box(width = 6,
@@ -144,12 +144,16 @@ combinationDrugScreenModule <- function(input,output,session,combinedData,sample
     sampleInfo1 <- dataset1[["sampleInfo"]]
     response.mat1 <- dataset1[["mat"]]
     single.fitted1 <- FittingSingleDrug(response.mat1)
-    
+    format1 <- strsplit(sampleInfo1$sampleName,"_")[[1]][2]
+
+    formats <- format1
     if(length(flt_dataset()) == 2){
       dataset2 <- flt_dataset()[[2]]
       sampleInfo2 <- dataset2[["sampleInfo"]]
       response.mat2 <- dataset2[["mat"]]
       single.fitted2 <- FittingSingleDrug(response.mat2)
+      format2 <- strsplit(sampleInfo2$sampleName,"_")[[1]][2]
+      formats <- c(formats,format2)
     }
     
     conc.unit <- sampleInfo1$concUnit ## concentration unit
@@ -158,48 +162,57 @@ combinationDrugScreenModule <- function(input,output,session,combinedData,sample
     drug.row <- sampleInfo1$drug.row
     drug.col <- sampleInfo1$drug.col
     
-    #layout(matrix(c(1, 3, 2, 3), 2, 2, byrow = TRUE))
     layout(matrix(c(1, 2), 2, 1, byrow = TRUE))
     x.lab <- paste("Concentration", unit.text, sep = " ")
 
-    plot(single.fitted1$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "obs", col = "red", cex = 1.5, pch = 16, xtsty = "base5")
-    plot(single.fitted1$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", cex = 1.5, add = T, lwd = 3)
+    plot(single.fitted1$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", ylim = range(1:100), type = "obs", col = "red", cex = 1.5, pch = 16, xtsty = "base5")
+    plot(single.fitted1$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", col = "red",cex = 1.5, add = T, lwd = 3)
+    if(length(flt_dataset()) == 2){
+      plot(single.fitted2$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "obs", col = "black", cex = 1.5, pch = 16, xtsty = "base5",add=TRUE)
+      plot(single.fitted2$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", cex = 1.5, add = T, lwd = 3)
+    }
+
+    legend('topright', 
+       formats, 
+       lty=c(1,1), 
+       lwd=c(2.5,2.5),
+       pch = c(21,21),
+       pt.bg=c("red","black"),
+       col=c("red","black"),cex=.75)
+
     title(paste("Dose-response curve for:", drug.row), cex.main = 1)
 
     # plot the curve for the col drug
-    plot(single.fitted1$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "obs", col = "red", cex = 1.5, pch = 16, xtsty = "base5")
-    plot(single.fitted1$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", cex = 1.5, add = T, lwd = 3)
+    plot(single.fitted1$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", ylim = range(1:100), type = "obs", col = "red", cex = 1.5, pch = 16, xtsty = "base5")
+    plot(single.fitted1$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", col = "red",cex = 1.5, add = T, lwd = 3)
+    if(length(flt_dataset()) == 2){
+      plot(single.fitted2$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "obs", col = "black", cex = 1.5, pch = 16, xtsty = "base5",add=TRUE)
+      plot(single.fitted2$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", cex = 1.5, add = T, lwd = 3)
+    }
+    
+    legend('topright', 
+       formats, 
+       lty=c(1,1), 
+       lwd=c(2.5,2.5),
+       pch = c(21,21),
+       pt.bg=c("red","black"),
+       col=c("red","black"))
+
     title(paste("Dose-response curve for:", drug.col), cex.main = 1)
     
   })
   
   output$doseResp_plot2 <- renderPlot({
     validate(need(input$updateButton, "."))
-    validate(need(length(flt_dataset()) == 2, "The second plot is not available for selected data."))
+    dataset1 <- flt_dataset()[[1]]
+    sampleInfo1 <- dataset1[["sampleInfo"]]
+    response.mat1 <- dataset1[["mat"]]
     
-    dataset2 <- flt_dataset()[[2]]
-    sampleInfo2 <- dataset2[["sampleInfo"]]
-    response.mat2 <- dataset2[["mat"]]
-    single.fitted2 <- FittingSingleDrug(response.mat2)
-    
-    conc.unit <- sampleInfo2$concUnit ## concentration unit
-    unit.text <- paste("(", conc.unit, ")", sep = "")
-    
-    drug.row <- sampleInfo2$drug.row
-    drug.col <- sampleInfo2$drug.col
-    
-    #layout(matrix(c(1, 3, 2, 3), 2, 2, byrow = TRUE))
-    layout(matrix(c(1, 2), 2, 1, byrow = TRUE))
-    x.lab <- paste("Concentration", unit.text, sep = " ")
-
-    plot(single.fitted2$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "obs", col = "red", cex = 1.5, pch = 16, xtsty = "base5")
-    plot(single.fitted2$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", cex = 1.5, add = T, lwd = 3)
-    title(paste("Dose-response curve for:", drug.row), cex.main = 1)
-
-    # plot the curve for the col drug
-    plot(single.fitted2$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "obs", col = "red", cex = 1.5, pch = 16, xtsty = "base5")
-    plot(single.fitted2$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", cex = 1.5, add = T, lwd = 3)
-    title(paste("Dose-response curve for:", drug.col), cex.main = 1)
+    if(length(flt_dataset()) == 2){
+      dataset2 <- flt_dataset()[[2]]
+      sampleInfo2 <- dataset2[["sampleInfo"]]
+      response.mat2 <- dataset2[["mat"]]
+    }
   })
 
   output$heatmap_plot1 <- renderPlot({
@@ -207,7 +220,8 @@ combinationDrugScreenModule <- function(input,output,session,combinedData,sample
     dataset <- flt_dataset()[[1]]
     sampleInfo <- dataset[["sampleInfo"]]
     response.mat <- dataset[["mat"]]
-    
+    format <- strsplit(sampleInfo$sampleName,"_")[[1]][2]
+
     num.row <- length(response.mat)
     data.plot <- data.frame(x = numeric(num.row), y = numeric(num.row),Inhibition = numeric(num.row))
     data.plot$Inhibition <- round(c(response.mat), 2)
@@ -222,7 +236,7 @@ combinationDrugScreenModule <- function(input,output,session,combinedData,sample
     drug.row <- sampleInfo$drug.row
     drug.col <- sampleInfo$drug.col
     
-    plot.title <- "Heatmap"
+    plot.title <- paste(format, "Heatmap")
     axis.x.text <- round(as.numeric(colnames(response.mat)), 1)
     axis.y.text <- round(as.numeric(rownames(response.mat)), 1)
     dose.response.p <- ggplot(data.plot, aes_string(x = "x", y = "y")) + geom_tile(aes_string(fill = 'Inhibition')) +
@@ -239,12 +253,13 @@ combinationDrugScreenModule <- function(input,output,session,combinedData,sample
 
   output$heatmap_plot2 <- renderPlot({
     validate(need(input$updateButton, "."))
-    #validate(need(length(flt_dataset()) == 2, "The second heatmap is not available for selected data."))
-    validate(need(length(flt_dataset()) == 2, "."))
+    validate(need(length(flt_dataset()) == 2, "The second heatmap is not available for selected data."))
+    
     dataset <- flt_dataset()[[2]]
     sampleInfo <- dataset[["sampleInfo"]]
     response.mat <- dataset[["mat"]]
-    
+    format <- strsplit(sampleInfo$sampleName,"_")[[1]][2]
+
     num.row <- length(response.mat)
     data.plot <- data.frame(x = numeric(num.row), y = numeric(num.row),Inhibition = numeric(num.row))
     data.plot$Inhibition <- round(c(response.mat), 2)
@@ -259,7 +274,7 @@ combinationDrugScreenModule <- function(input,output,session,combinedData,sample
     drug.row <- sampleInfo$drug.row
     drug.col <- sampleInfo$drug.col
     
-    plot.title <- "Heatmap"
+    plot.title <- paste(format, "Heatmap")
     axis.x.text <- round(as.numeric(colnames(response.mat)), 1)
     axis.y.text <- round(as.numeric(rownames(response.mat)), 1)
     dose.response.p <- ggplot(data.plot, aes_string(x = "x", y = "y")) + geom_tile(aes_string(fill = 'Inhibition')) +
@@ -273,58 +288,5 @@ combinationDrugScreenModule <- function(input,output,session,combinedData,sample
     dose.response.p <- dose.response.p + ggtitle(plot.title)
     dose.response.p
   })
-  
-#   output$plots <- renderPlot({
-#     validate(need(input$updateButton, "Please click \"Update\"."))
-#     dataset <- flt_dataset()
-#     sampleInfo <- dataset[["sampleInfo"]]
-#     response.mat <- dataset[["mat"]]
-#     
-#     num.row <- length(response.mat)
-#     data.plot <- data.frame(x = numeric(num.row), y = numeric(num.row),Inhibition = numeric(num.row))
-#     data.plot$Inhibition <- round(c(response.mat), 2)
-#     data.plot$y <- rep(c(1:ncol(response.mat)), nrow(response.mat))
-#     data.plot$x <- rep(1:nrow(response.mat), each = ncol(response.mat))
-#     data.plot$x <- as.factor(data.plot$x)
-#     data.plot$y <- as.factor(data.plot$y)
-#     conc.unit <- sampleInfo$concUnit ## concentration unit
-#     
-#     unit.text <- paste("(", conc.unit, ")", sep = "")
-#     
-#     drug.row <- sampleInfo$drug.row
-#     drug.col <- sampleInfo$drug.col
-#     
-#     plot.title <- "Heatmap"
-#     axis.x.text <- round(as.numeric(colnames(response.mat)), 1)
-#     axis.y.text <- round(as.numeric(rownames(response.mat)), 1)
-#     dose.response.p <- ggplot(data.plot, aes_string(x = "x", y = "y")) + geom_tile(aes_string(fill = 'Inhibition')) +
-#       geom_text(aes_string(fill = 'Inhibition', label = 'Inhibition')) +
-#       scale_fill_gradient2(low = "green", high = "red", midpoint = 0, name = "Inhibiton (%)") +
-#       scale_x_discrete(labels = axis.x.text) + scale_y_discrete(labels = axis.y.text) +
-#       xlab(paste(drug.col, unit.text, sep = " ")) + ylab(paste(drug.row, unit.text, sep = " "))
-#     dose.response.p <- dose.response.p + theme(axis.text.x = element_text(color = "red", face = "bold", size = 15))
-#     dose.response.p <- dose.response.p + theme(axis.text.y = element_text(color = "red", face = "bold", size = 15))
-#     dose.response.p <- dose.response.p + theme(axis.title = element_text(size=15))
-#     dose.response.p <- dose.response.p + ggtitle(plot.title)
-# 
-#     single.fitted <- FittingSingleDrug(response.mat)
-# 
-#     layout(matrix(c(1, 3, 2, 3), 2, 2, byrow = TRUE))
-#     # plot the curve for the row drug
-#     suppressWarnings(par(mgp=c(3, .5, 0)))
-#     x.lab <- paste("Concentration", unit.text, sep = " ")
-# 
-#     plot(single.fitted$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "obs", col = "red", cex = 1.5, pch = 16, xtsty = "base5")
-#     plot(single.fitted$drug.row.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", cex = 1.5, add = T, lwd = 3)
-#     title(paste("Dose-response curve for:", drug.row), cex.main = 1)
-# 
-#     # plot the curve for the col drug
-#     plot(single.fitted$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "obs", col = "red", cex = 1.5, pch = 16, xtsty = "base5")
-#     plot(single.fitted$drug.col.model, xlab = x.lab, ylab = "Inhibition (%)", type = "none", cex = 1.5, add = T, lwd = 3)
-#     title(paste("Dose-response curve for:", drug.col), cex.main = 1)
-# 
-#     plot.new()
-#     print(dose.response.p, vp = viewport(height = unit(1, "npc"), width = unit(0.5, "npc"), just = c("left","top"), y = 1, x = 0.5))
-#   })
 
 }
