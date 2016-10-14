@@ -35,12 +35,19 @@ combinationDrugScreenModuleUI <- function(id,combined_data){
       
       fluidRow(
         tabBox(width = 12,height = "600px",
-          tabPanel("Dose Response",
-              uiOutput(ns("facet_by_ui")),
-              plotOutput(ns("doseResp_plots"),height = "500px")
+          tabPanel("IC50",
+            plotOutput(ns("ic50_plot"), height = "500px")
           ),
           tabPanel("Heatmap",
-                plotOutput(ns("heatmap_plots"),height = "500px")
+            plotOutput(ns("heatmap_plots"),height = "500px")
+          ),
+          tabPanel("Dose Response",
+            uiOutput(ns("facet_by_ui")),
+            plotOutput(ns("doseResp_plots"),height = "500px")
+          ),
+          tabPanel("Combination Dose Response",
+            uiOutput(ns("helper_txt")),
+            plotOutput(ns("comb_doseResp_plots"),height = "500px")
           )
         )
       )
@@ -119,7 +126,6 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     dt <- plot_dataset()
     var <- c('drug', 'sample', 'numDosagePoints')
     doseRespData <- plyr::ddply(.data=dt, .variables = var,.fun = tmp_iterator, .parallel = T)
-    doseRespData$grp <- doseRespData$sample
     doseRespData
   })
   
@@ -217,6 +223,120 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
   output$heatmap_plots <- renderPlot({
     validate(need(input$updateButton, "Please click \"Update\"."))
     heatmap_list()
+  })
+  
+  
+  # Combination Dose Response tab
+  output$helper_txt <- renderUI({
+    if(input$updateButton){
+      helpText("Only shows the first selected sample.")
+    }
+  })
+  
+  combResp_dataset <- reactive({
+    flt_dataset <- flt_dataset()
+    sample1_dt <- flt_dataset[flt_dataset$sample == input$selected_sample[1] & flt_dataset$numDosagePoints == 6,]
+    
+    # Get data for drug1
+    drug1_dt <- sample1_dt[,c("conc1","conc2","response")] 
+    names(drug1_dt) <- c("conc","otherConc","response")
+    drug1_dt$response <- as.numeric(drug1_dt$response)/100
+    drug1_dt <- drug1_dt[drug1_dt$conc != 0,]
+    var <- c('otherConc')
+    dose_resp1 <- plyr::ddply(.data=drug1_dt, .variables = var,.fun = tmp_iterator, .parallel = T)
+    
+    # Get data for drug2
+    drug2_dt <- sample1_dt[,c("conc2","conc1","response")] 
+    names(drug2_dt) <- c("conc","otherConc","response")
+    drug2_dt$response <- as.numeric(drug2_dt$response)/100
+    drug2_dt <- drug2_dt[drug2_dt$conc != 0,]
+    dose_resp2 <- plyr::ddply(.data=drug2_dt, .variables = var,.fun = tmp_iterator, .parallel = T)
+    
+    # Combine into a list
+    list(drug1=list(drug1=input$selected_drug1,drug2=input$selected_drug2,drug_dt=drug1_dt,dose_resp=dose_resp1),
+         drug2=list(drug1=input$selected_drug2,drug2=input$selected_drug1,drug_dt=drug2_dt,dose_resp=dose_resp2))
+  })
+  
+  combDoseResp_list <- reactive({
+    dt <- combResp_dataset()
+    p_list <- lapply(dt, function(x){
+      drug1 <- x$drug1
+      drug2 <- x$drug2
+      drug_dt <- x$drug_dt
+      dose_resp <- x$dose_resp
+      # Prep for plotting
+      drug_dt$conc <- log10(drug_dt$conc)
+      drug_dt$response <- drug_dt$response*100
+      drug_dt$otherConc <- sapply(drug_dt$otherConc,function(x)format(signif(x,digits = 2),scientific = T))
+      drug_dt$otherConc <- factor(drug_dt$otherConc,levels=unique(drug_dt$otherConc))
+      dose_resp$fittedY <- dose_resp$fittedY*100
+      dose_resp$otherConc <- sapply(dose_resp$otherConc,function(x)format(signif(x,digits = 2),scientific = T))
+      
+      labelVal <- drug_dt$conc
+      
+      #Color
+      mypalette<-brewer.pal(5,"Purples")
+      myColor <- c("black",mypalette)
+      names(myColor) <- unique(dose_resp$otherConc)
+      
+      p <- ggplot(drug_dt,aes(x=conc,y=response,colour=otherConc)) + geom_point(size=2)
+      p <- p + scale_colour_manual(name=paste(drug2, "(uM)"),
+                                   values = myColor)
+      p <- p + geom_line(data = dose_resp,aes(x =fittedX, y = fittedY, group = otherConc),size=1)
+      p <- p + theme_bw(base_size = 15) 
+      p <- p + xlab(paste(drug1, "(uM)")) + ylab("response (%)")
+      p <- p + scale_x_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
+      return(p)
+    })
+    do.call(grid.arrange, c(p_list, list(ncol = 2)))
+  })
+  
+  output$comb_doseResp_plots <- renderPlot({
+    validate(need(input$updateButton, "Please click \"Update\"."))
+    combDoseResp_list()
+  })
+  
+  ic50_dt <- reactive({
+    flt_dataset <- flt_dataset()
+    
+    drug1_dt <- flt_dataset[,c("sample","drug1","conc1","conc2","response")] 
+    names(drug1_dt) <- c("sample","drug","conc","otherConc","response")
+    drug2_dt <- flt_dataset[,c("sample","drug2","conc2","conc1","response")] 
+    names(drug2_dt) <- c("sample","drug","conc","otherConc","response")
+    
+    drug_dt <- rbind(drug1_dt,drug2_dt)
+    drug_dt$response <- as.numeric(drug_dt$response)/100
+    drug_dt <- drug_dt[drug_dt$conc != 0,]
+    var <- c('drug', 'sample','otherConc')
+    doseRespData <- plyr::ddply(.data=drug_dt, .variables = var,.fun = tmp_iterator, .parallel = T)
+    
+    doseRespData <- doseRespData[,c("drug","sample","IC50")]
+    doseRespData <- doseRespData[!duplicated(doseRespData),]
+    doseRespData <- doseRespData[!is.na(doseRespData$IC50), ]
+    
+    doseRespData$IC50 <- log10(as.numeric(doseRespData$IC50))
+    
+    doseRespData
+  })
+  
+  #IC50 tab
+  output$ic50_plot <- renderPlot({
+    validate(need(input$updateButton, "Please click \"Update\"."))
+    drug_data <- doseResp_data()
+    drug_data <- drug_data[,c("drug","sample","IC50")]
+    drug_data <- drug_data[!duplicated(drug_data),]
+    drug_data <- drug_data[!is.na(drug_data$IC50), ]
+    
+    drug_data$IC50 <- log10(as.numeric(drug_data$IC50))
+    
+    doseRespData <- ic50_dt()
+    labelVal <- quantile(doseRespData$IC50)
+    
+    p <- ggplot(data=drug_data, aes(x=sample, y=IC50)) 
+    p <- p + geom_point(aes(color=drug), size=3) + theme_bw(base_size = 15)
+    p <- p + geom_boxplot(data=doseRespData,aes(x=sample,y=IC50,fill=drug))
+    p <- p + scale_y_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
+    p + theme(text = element_text(size=20)) + xlab('Sample') + ylab('IC50 (uM)')
   })
 
 }

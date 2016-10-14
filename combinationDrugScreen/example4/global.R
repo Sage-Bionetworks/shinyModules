@@ -13,6 +13,7 @@ library(doMC)
 registerDoMC(4)
 library(nplr)
 library(stringr)
+library(RColorBrewer)
 
 flog.threshold(DEBUG, name='server')
 flog.threshold(DEBUG, name='ui')
