@@ -42,7 +42,7 @@ combinationDrugScreenModuleUI <- function(id,combined_data){
             plotOutput(ns("heatmap_plots"),height = "500px")
           ),
           tabPanel("Dose Response",
-            uiOutput(ns("facet_by_ui")),
+            #uiOutput(ns("facet_by_ui")),
             plotOutput(ns("doseResp_plots"),height = "500px")
           ),
           tabPanel("Combination Dose Response",
@@ -62,7 +62,7 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
   ns <- NS(tag)
   observeEvent(input$selected_sample,{
     assay <- unique(filter(combined_data, sample %in% input$selected_sample)$assay)
-    updateSelectInput(session,"selected_assay",choices = assay, selected = assay[1])
+    updateSelectInput(session,"selected_assay",choices = assay)#, selected = assay[1])
   })
 
   dataset <- reactive({
@@ -74,13 +74,13 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
   observeEvent(dataset(),{
     dataset <- dataset()
     drug.row <- sort(unique(dataset$drug1))
-    updateSelectInput(session,"selected_drug1",choices = drug.row, selected = drug.row[1])
+    updateSelectInput(session,"selected_drug1",choices = drug.row)#, selected = drug.row[1])
   })
 
   observeEvent(input$selected_drug1,{
     dataset <- dataset()
     drug.col <- sort(unique(dataset[dataset$drug1 == input$selected_drug1,]$drug2))
-    updateSelectInput(session,"selected_drug2",choices = drug.col, selected = drug.col[1])
+    updateSelectInput(session,"selected_drug2",choices = drug.col)#, selected = drug.col[1])
   })
     
   flt_dataset <- eventReactive(input$updateButton,{
@@ -137,7 +137,8 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     resp_dt$fittedY <- resp_dt$fittedY*100
     resp_dt$numDosagePoints <- as.character(resp_dt$numDosagePoints)
     
-    facet_by <- input$facet_by
+    #facet_by <- input$facet_by
+    facet_by <- "numDosagePoints"
     color_by <- "sample"
     if(facet_by == color_by){
       color_by <- "numDosagePoints" 
@@ -330,13 +331,15 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     drug_data$IC50 <- log10(as.numeric(drug_data$IC50))
     
     doseRespData <- ic50_dt()
-    labelVal <- quantile(doseRespData$IC50)
+    #labelVal <- quantile(doseRespData$IC50)
     
     p <- ggplot(data=drug_data, aes(x=sample, y=IC50)) 
-    p <- p + geom_point(aes(color=drug), size=3) + theme_bw(base_size = 15)
-    p <- p + geom_boxplot(data=doseRespData,aes(x=sample,y=IC50,fill=drug))
-    p <- p + scale_y_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
-    p + theme(text = element_text(size=20)) + xlab('Sample') + ylab('IC50 (uM)')
+    #p <- p + geom_point(aes(color=drug), size=3) + theme_bw(base_size = 15)
+    p <- p + geom_point(size=3) + theme_bw(base_size = 15)
+    #p <- p + geom_boxplot(data=doseRespData,aes(x=sample,y=IC50,fill=drug))
+    p <- p + geom_boxplot(data=doseRespData,aes(x=sample,y=IC50))
+    #p <- p + scale_y_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
+    p + theme(text = element_text(size=20)) + xlab('Sample') + ylab(' log10 IC50 (uM)')
   })
 
 }
