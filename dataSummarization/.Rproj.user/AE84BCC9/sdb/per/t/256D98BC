@@ -1,0 +1,18 @@
+{
+    "contents" : "# global.R\noptions(stringsAsFactors = FALSE)\nlibrary(shiny)\nlibrary(shinydashboard)\nlibrary(plyr)\nlibrary(synapseClient)\n\nsynapseLogin()\n\nsource('dataSummarizationModule.R')\nsource('getData.R')\n",
+    "created" : 1481064080766.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2210959141",
+    "id" : "256D98BC",
+    "lastKnownWriteTime" : 1481148608,
+    "path" : "~/Documents/NTAP/dataSummarization/global.R",
+    "project_path" : "global.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "type" : "r_source"
+}

@@ -1,0 +1,18 @@
+{
+    "contents" : "#getData.R\n\nprojectDf <- data.frame(projectName = c('Drug Screening of pNF Cell Lines','pNF Cell Line Characterization Studies'), \n                        annotationTable = c('syn7506024','syn7805075'))\n\nkeyList <- c('assay','dataType','dataSubtype','fileFormat','species','diagnosis','tumorType',\n             'cellType','isCellLine','organ','tissue','consortium')",
+    "created" : 1481065624372.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "972854583",
+    "id" : "413841F7",
+    "lastKnownWriteTime" : 1481146466,
+    "path" : "~/Documents/NTAP/dataSummarization/getData.R",
+    "project_path" : "getData.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "type" : "r_source"
+}
