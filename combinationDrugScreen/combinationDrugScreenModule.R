@@ -17,12 +17,12 @@ combinationDrugScreenModuleUI <- function(id,combined_data){
             column(width = 4,
                    h4('1. Select Samples'),
                    selectInput(ns('selected_sample'),NULL, choices = unique(combined_data$sample),
-                    selectize=T, multiple=T, selected = unique(combined_data$sample)[1:3])
+                               selectize=T, multiple=T, selected = unique(combined_data$sample)[1:3])
             ),
             column(width = 3,
                    h4('2. Select Assay'),
                    selectInput(ns('selected_assay'),NULL, choices = NULL,
-                    selectize=T, multiple=F, selected = NULL)
+                               selectize=T, multiple=F, selected = NULL)
             ),
             column(width = 5,
                    h4('3. Select Drugs'),
@@ -35,20 +35,20 @@ combinationDrugScreenModuleUI <- function(id,combined_data){
       
       fluidRow(
         tabBox(width = 12,height = "600px",
-          tabPanel("IC50",
-            plotOutput(ns("ic50_plot"), height = "500px")
-          ),
-          tabPanel("Heatmap",
-            plotOutput(ns("heatmap_plots"),height = "500px")
-          ),
-          tabPanel("Dose Response",
-            #uiOutput(ns("facet_by_ui")),
-            plotOutput(ns("doseResp_plots"),height = "500px")
-          ),
-          tabPanel("Combination Dose Response",
-            uiOutput(ns("helper_txt")),
-            plotOutput(ns("comb_doseResp_plots"),height = "500px")
-          )
+               tabPanel("IC50",
+                        plotOutput(ns("ic50_plot"), height = "500px")
+               ),
+               tabPanel("Heatmap",
+                        plotOutput(ns("heatmap_plots"),height = "500px")
+               ),
+               tabPanel("Dose Response",
+                        #uiOutput(ns("facet_by_ui")),
+                        plotOutput(ns("doseResp_plots"),height = "500px")
+               ),
+               tabPanel("Combination Dose Response",
+                        uiOutput(ns("helper_txt")),
+                        plotOutput(ns("comb_doseResp_plots"),height = "500px")
+               )
         )
       )
       )
@@ -56,7 +56,7 @@ combinationDrugScreenModuleUI <- function(id,combined_data){
       )
   dashboardPage(header=myHeader, sidebar=mySidebar, body=myBody,
                 skin = "blue")
-} 
+  } 
 
 combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
   ns <- NS(tag)
@@ -64,30 +64,30 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     assay <- unique(filter(combined_data, sample %in% input$selected_sample)$assay)
     updateSelectInput(session,"selected_assay",choices = assay)#, selected = assay[1])
   })
-
+  
   dataset <- reactive({
     dataset <- filter(combined_data, sample %in% input$selected_sample)
     dataset <- dataset[dataset$assay == input$selected_assay,]
     dataset
   })
-
+  
   observeEvent(dataset(),{
     dataset <- dataset()
     drug.row <- sort(unique(dataset$drug1))
     updateSelectInput(session,"selected_drug1",choices = drug.row)#, selected = drug.row[1])
   })
-
+  
   observeEvent(input$selected_drug1,{
     dataset <- dataset()
     drug.col <- sort(unique(dataset[dataset$drug1 == input$selected_drug1,]$drug2))
     updateSelectInput(session,"selected_drug2",choices = drug.col)#, selected = drug.col[1])
   })
-    
+  
   flt_dataset <- eventReactive(input$updateButton,{
     validate(need(!is.null(input$selected_sample), "At least one sample needs to be selected." ),
              need(length(input$selected_sample) <= 5, "You can select up to 5 samples." ))
     dataset <- dataset()
-
+    
     flt_dataset <- dataset[dataset$drug1 == input$selected_drug1 & dataset$drug2 == input$selected_drug2,]
     flt_dataset
   })
@@ -108,12 +108,12 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     drug1_dataset <- flt_dataset[flt_dataset$conc2 == 0,]
     drug1_dataset <- drug1_dataset[,-which(names(drug1_dataset) %in% c("drug2","conc2"))]
     names(drug1_dataset) <- sub("[12]","",names(drug1_dataset))
-
+    
     # Get data for drug2
     drug2_dataset <- flt_dataset[flt_dataset$conc1 == 0,]
     drug2_dataset <- drug2_dataset[,-which(names(drug2_dataset) %in% c("drug1","conc1"))]
     names(drug2_dataset) <- sub("[12]","",names(drug2_dataset))
-  
+    
     # Combine and remove 0s
     drug_dataset <- rbind(drug1_dataset,drug2_dataset)
     drug_dataset$response <- as.numeric(drug_dataset$response)/100
@@ -121,7 +121,7 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     
     drug_dataset
   })
-
+  
   doseResp_data <- reactive({
     dt <- plot_dataset()
     var <- c('drug', 'sample', 'numDosagePoints')
@@ -154,7 +154,7 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     p <- p + geom_hline(aes(yintercept=50), color='grey50', linetype='dashed')
     p <- p + scale_x_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
     p <- p + xlab('conc (uM)') + ylab('cell viability %') 
-  
+    
     p
   })
   
@@ -180,7 +180,7 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     
     mats
   })
-
+  
   heatmap_list <- reactive({
     plotlist <- list()
     heatmap_dataset <- heatmap_dataset()
@@ -220,7 +220,7 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     do.call(grid.arrange, c(plotlist, list(ncol = 2)))
   })
   
-
+  
   output$heatmap_plots <- renderPlot({
     validate(need(input$updateButton, "Please click \"Update\"."))
     heatmap_list()
@@ -237,7 +237,7 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
   combResp_dataset <- reactive({
     flt_dataset <- flt_dataset()
     sample1_dt <- flt_dataset[flt_dataset$sample == input$selected_sample[1] & flt_dataset$numDosagePoints == 6,]
-    
+    validate(need(nrow(sample1_dt) > 0, "Data is not available."))
     # Get data for drug1
     drug1_dt <- sample1_dt[,c("conc1","conc2","response")] 
     names(drug1_dt) <- c("conc","otherConc","response")
@@ -341,7 +341,7 @@ combinationDrugScreenModule <- function(input,output,session,combined_data,tag){
     #p <- p + scale_y_continuous(breaks = labelVal, labels = sapply(labelVal, function(x) format(signif(10^x,digits = 2),scientific = T)))
     p + theme(text = element_text(size=20)) + xlab('Sample') + ylab(' log10 IC50 (uM)')
   })
-
+  
 }
 
 get_drugResponse_stats <- function(conc,viability,...){

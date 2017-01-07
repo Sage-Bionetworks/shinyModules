@@ -108,16 +108,28 @@ result3 <- getDataList(cells,format,assay)
 
 combinedData <- do.call(rbind,list(result1,result2,result3))
 
-combinedData$drug1 <- editDrugNames(combinedData$drug1)
-combinedData$drug2 <- editDrugNames(combinedData$drug2)
-
 editDrugNames <- function(col){
-  col <- sub("AMG 232","AMG-232",col)
-  col <- sub("AZD2014","AZD-2014",col)
-  col <- sub("^Carfilzomib.*","Carfilzomib",col)
-  col <- sub("MLN7243","MLN-7243",col)
+  col <- sub("\\s+$","",col)
+  col <- sub("AMG-232","AMG 232",col)
+  col <- sub("AZD-2014","AZD2014",col)
+  col <- sub("^BKM-120$","BKM120 (NVP-BKM120, Buparlisib)",col)
+  col <- sub("^Cabozantinib$","Cabozantinib (XL184, BMS-907351)",col)
+  col <- sub("^Carfilzomib$","Carfilzomib (PR-171)",col)
+  col <- sub("^Crizotinib$","Crizotinib (PF-02341066)",col)
+  col <- sub("^Danusertib$","Danusertib (PHA-739358)",col)
+  col <- sub("^Dasatinib$","Defactinib (VS-6063, PF-04554878)",col)
+  col <- sub("^Doxorubicin$","Doxorubicin (Adriamycin)",col)
+  col <- sub(".+JQ1","JQ1",col)
+  col <- sub("^LY2801653$","LY2801653 dihydrochloride",col)
+  col <- sub("MK-2206 2HCl","MK-2206",col)
+  col <- sub("MLN-7243","MLN7243",col)
+  col <- sub("Topotecan HCl","Topotecan hydrochloride",col)
   return(col)
 }
+
+
+combinedData$drug1 <- editDrugNames(combinedData$drug1)
+combinedData$drug2 <- editDrugNames(combinedData$drug2)
 
 combinedData <- combinedData[combinedData$drug1 != "null" & combinedData$drug2 != "null",]
 combinedData <- combinedData[combinedData$drug1 != "N/A ",]
