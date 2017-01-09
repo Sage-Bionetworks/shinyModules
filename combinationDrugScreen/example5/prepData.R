@@ -4,7 +4,6 @@ library("tidyr")
 library("data.table")
 library("dplyr")
 
-
 # Synodos NF2 Combination Drug Screen Data
 screendirs <- list(`10x10`='syn7210596',`6x6`='syn7210556')
 
@@ -117,19 +116,20 @@ editDrugNames <- function(col){
   col <- sub("^Carfilzomib$","Carfilzomib (PR-171)",col)
   col <- sub("^Crizotinib$","Crizotinib (PF-02341066)",col)
   col <- sub("^Danusertib$","Danusertib (PHA-739358)",col)
-  col <- sub("^Dasatinib$","Defactinib (VS-6063, PF-04554878)",col)
   col <- sub("^Doxorubicin$","Doxorubicin (Adriamycin)",col)
   col <- sub(".+JQ1","JQ1",col)
   col <- sub("^LY2801653$","LY2801653 dihydrochloride",col)
   col <- sub("MK-2206 2HCl","MK-2206",col)
   col <- sub("MLN-7243","MLN7243",col)
   col <- sub("Topotecan HCl","Topotecan hydrochloride",col)
+  col <- sub("^PD-0332991$","Palbociclib (PD-0332991) HCl",col)
   return(col)
 }
 
 
 combinedData$drug1 <- editDrugNames(combinedData$drug1)
 combinedData$drug2 <- editDrugNames(combinedData$drug2)
+
 
 combinedData <- combinedData[combinedData$drug1 != "null" & combinedData$drug2 != "null",]
 combinedData <- combinedData[combinedData$drug1 != "N/A ",]
