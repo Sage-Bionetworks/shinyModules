@@ -2,11 +2,11 @@ flog.info('downloading mRNA Exp data from Synapse', name='synapse')
 expr_obj <- synGet('syn7124098')
 
 #read in the file
-expr <- read.csv(expr_obj@filePath,sep = "\t",stringsAsFactors = FALSE)
+expr <- read.csv(expr_obj$path,sep = "\t",stringsAsFactors = FALSE)
 
 flog.info('Reading mRNA metadata from Synapse', name='synapse')
 metaData_obj <- synGet("syn7139168")
-metaData <- read.csv(metaData_obj@filePath,sep = "\t",stringsAsFactors = FALSE)
+metaData <- read.csv(metaData_obj$path,sep = "\t",stringsAsFactors = FALSE)
 
 ## Only keep samples in both
 in_common <- intersect(rownames(metaData), colnames(expr))
@@ -27,5 +27,5 @@ eset.data <- ExpressionSet(assayData=as.matrix(expr),
 
 
 MSIGDB_syn<-synGet("syn2227979")
-load(MSIGDB_syn@filePath) #available as MSigDB R object
+load(MSIGDB_syn$path) #available as MSigDB R object
 pathways_list <- c(MSigDB$C2.CP.BIOCARTA, MSigDB$C2.CP.KEGG, MSigDB$C2.CP.REACTOME)

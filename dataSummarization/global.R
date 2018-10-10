@@ -2,6 +2,8 @@
 options(stringsAsFactors = FALSE)
 library(shiny)
 library(shinydashboard)
+library(DT)
+library(ggplot2)
 library(plyr)
 library(synapseClient)
 

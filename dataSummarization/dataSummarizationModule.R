@@ -39,7 +39,10 @@ dataSummarizationModuleUI <- function(id,projectDf,keyList){
                         downloadButton(ns("download_result")),
                         br(),
                         br(),
-                        dataTableOutput(ns("summarized_table"))
+                        DT::dataTableOutput(ns("summarized_table"))
+               ),
+               tabPanel("Plots",
+                        splitLayout(cellWidths = c("50%", "50%"), plotOutput(ns("plotgraph1")), plotOutput(ns("plotgraph2")))
                )
         )
       )
@@ -90,9 +93,9 @@ dataSummarizationModule <- function(input,output,session,projectDf){
     tbl
   })
   
-  output$summarized_table <- renderDataTable({
+  output$summarized_table <- DT::renderDataTable({
     summarizedTable()
-  })
+    }, selection = 'single')
   
     output$download_result <- downloadHandler(
       filename = function() { paste(Sys.Date(),'summarizedTable.csv',sep="_") },
@@ -100,6 +103,23 @@ dataSummarizationModule <- function(input,output,session,projectDf){
         write.csv(summarizedTable(), file,row.names = FALSE)
       }
     )
+    
+    output$plotgraph1 <- renderPlot({
+      tbl <- summarizedTable()
+      p <- plotBar(tbl,input$selected_des_keys[1],input$selected_sum_keys[1],input$selected_des_keys[2])
+      p
+    })
+    
+    output$plotgraph2 <- renderPlot({
+      tbl <- summarizedTable()
+      p <- plotBar(tbl,input$selected_des_keys[1],input$selected_sum_keys[2],input$selected_des_keys[2])
+      p
+    })
+    
+    plotBar <- function(tbl,x,y,fill){
+      p <- ggplot(data = tbl,aes_string(x=x,y=y,fill=fill))+geom_bar(stat = "identity",position="dodge")
+      return(p)
+    }
 }
 
 

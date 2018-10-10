@@ -2,7 +2,7 @@ options(stringsAsFactors = F)
 options(warn=-1)
 
 library("devtools")
-library("synapseClient")
+library("synapser")
 library("shiny")
 library("shinydashboard")
 library("dplyr")
@@ -22,7 +22,7 @@ flog.threshold(DEBUG, name='global')
 flog.threshold(INFO, name='synapse')
 
 #login to synapse
-synapseLogin()
+synLogin()
 
 flog.debug("Starting App", name="server")
 
